@@ -2,11 +2,11 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 from numba import njit, prange
 import h5py
-from sklearn import neighbors
+
 from scipy.spatial import KDTree
 
 from matplotlib.colors import hsv_to_rgb
-import multiprocessing as mp
+
 import time
 import math
 
