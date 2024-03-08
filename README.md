@@ -1,10 +1,27 @@
 # SPHerture
  GUI Gadget HDF5 viewer
 
-## Dependancies
+## Quick setup guide
 
-1. wxPython, numpy, SciPy, h5py, matplotlib, threading, numba, sklearn
+1. Install [Poetry](https://python-poetry.org/) and [pyenv](https://github.com/pyenv/pyenv).
+
+2. Clone the repository and enter it's directory.
+
+3. Install and activate Python 3.9.6 for the project:
 
 ```bash
-python SPH_viewer.py
+pyenv install 3.9.6
+pyenv local 3.9.6
+```
+
+4. Create virtual environment and install dependencies:
+
+```bash
+poetry install
+```
+
+5. Run:
+
+```bash
+poetry run python3 SPH_viewer.py
 ```
