@@ -24,12 +24,12 @@ class H5Data():
         self.log = True
         self.slice = False
         self.hue = None
-        try:
-            with h5py.File(path, 'r') as file:
-                file['Header']
+        self.path = None
+
+        with h5py.File(path, 'r') as file:
+            file['PartType0']
             self.path = path
-        except OSError:
-            pass
+
         self.rotate((0,0))
 
     def switch_log(self):

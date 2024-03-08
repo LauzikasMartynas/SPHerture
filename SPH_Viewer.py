@@ -148,10 +148,20 @@ class Frame(wx.Frame):
         self.SetMenuBar(menu_bar)
 
     def on_open_dialog(self, event=None):
-        dialog = wx.FileDialog(self, 'Open snapshot:', style=wx.DD_DEFAULT_STYLE)
+        dialog = wx.FileDialog(self, 'Open Gadget snapshot:',
+                                style=wx.DD_DEFAULT_STYLE,
+                                wildcard="HDF5 files (*.hdf5)|*.hdf5")
+                
         if dialog.ShowModal() == wx.ID_OK:
-            self.h5_data = H5Data(dialog.GetPath())
-            SecondaryFrame(self)
+            try:
+                self.h5_data = H5Data(dialog.GetPath())
+                SecondaryFrame(self)
+            except:
+                dlg = wx.MessageDialog(self, "", "No bueno!", wx.OK | wx.ICON_WARNING)
+                dlg.ShowModal()
+                dlg.Destroy()
+                self.on_open_dialog()
+        
         dialog.Destroy()
     
     def on_hist(self, evt):
