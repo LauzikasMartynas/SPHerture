@@ -9,91 +9,10 @@ from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as Navigat
 import multiprocessing as mp
 
 #from MyOpenGL import GLCanvas
-from Julia import JuliaSet
+from Julia import JuliaFrame
 from hdf5 import H5Data
 from display import DisplayPanel
 from plt import hist
-
-class JuliaPanel(wx.Panel):
-    def __init__(self, parent):
-        super().__init__(parent)
-        
-        # Create a placement style for widgets
-        box_sizer = wx.BoxSizer(wx.VERTICAL)
-        
-        # Create canvas for OpenGL
-        #self.canvas = GLCanvas(self)
-        # Add widget
-        #box_sizer.Add(self.canvas, 1, wx.ALL | wx.EXPAND, 5)
-
-        self.bitmap = wx.Bitmap()
-        self.julia = JuliaSet()
-        self.img_ctrl = wx.StaticBitmap(self, bitmap=self.bitmap)
-        box_sizer.Add(self.img_ctrl, 0, wx.ALL | wx.EXPAND, 5)
-
-        # Arrange placement style
-        self.SetSizer(box_sizer)
-
-        self.timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.julia_zoom, self.timer)
-        
-        self.timer2 = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.julia_rot, self.timer2)
-
-        self.Bind(wx.EVT_MOTION, self.OnMouseMove)
-
-        self.Bind(wx.EVT_SIZE, self.OnChange)
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
-        
-        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
-        self.Bind(wx.EVT_MOTION, self.OnMouseMove)
-
-    def OnLeftDown(self, event):
-        self.mouse_pos_init = event.GetPosition()
-
-    def OnMouseMove(self, event):
-        self.mouse_pos_current = event.GetPosition()
-        if event.LeftIsDown():
-            size = self.GetSize()
-            delta = self.mouse_pos_current - self.mouse_pos_init
-            self.julia.shift(delta, size)
-            self.mouse_pos_init = self.mouse_pos_current
-            self.OnChange()
-
-    def julia_zoom(self, event):
-        self.julia.set_zoom(1.005)
-        self.OnChange()
-
-    def julia_rot(self, event):
-        self.julia.set_rot(0.005)
-        self.OnChange()
-
-    def OnKeyPress(self, event):
-        keycode = event.GetUnicodeKey()
-        if keycode in [90, 122]:
-            if self.timer.IsRunning():
-                self.timer.Stop()
-            else:
-                self.timer.Start(100)
-        if keycode in [88, 120]:
-            if self.timer2.IsRunning():
-                self.timer2.Stop()
-            else:
-                self.timer2.Start(50)
-
-    def OnChange(self, evt=None):
-        size = self.Size
-        self.bitmap = wx.Bitmap.FromBuffer(size[0], size[1],
-            self.julia.get_julia_jit(size[0], size[1]))
-        self.Refresh()
-
-    def OnPaint(self, evt=None):
-        dc = wx.PaintDC(self)
-        try:
-            dc.DrawBitmap(self.bitmap, 0, 0)
-        except ValueError:  # in case bitmap has not yet been initialized
-            pass
 
 class SecondaryFrame(wx.Frame):
     def __init__(self, parent):
@@ -201,16 +120,12 @@ class Frame(wx.Frame):
         self.SetSize(self.GetSize())
         self.InitUI()
 
-        # Create a panel
-        self.panel = JuliaPanel(self)
-
-        # Data place holder
-        self.h5_data = None
+        #self.h5_data = H5Data('/Users/martynas/App/App/snap_050.hdf5')
+        #SecondaryFrame(self)
         
-        # Uncomment for Julia
-        self.h5_data = H5Data('/Users/martynas/App/App/snap_050.hdf5')
-        SecondaryFrame(self)
-
+        self.on_open_dialog()
+        
+        
     def InitUI(self):
         # Create File menu
         file_menu = wx.Menu()
@@ -218,6 +133,7 @@ class Frame(wx.Frame):
         
         tools_menu = wx.Menu()
         tools_menu_hist_item = tools_menu.Append(wx.ID_ANY, 'Histogram')
+        tools_menu_julia_item = tools_menu.Append(wx.ID_ANY, 'Julia Set')
         
         # Create menu bar and add File menu
         menu_bar = wx.MenuBar()
@@ -227,10 +143,11 @@ class Frame(wx.Frame):
         # Add events
         self.Bind(wx.EVT_MENU, self.on_open_dialog, source=file_menu_open_item)
         self.Bind(wx.EVT_MENU, self.on_hist, source=tools_menu_hist_item)
+        self.Bind(wx.EVT_MENU, self.on_julia, source=tools_menu_julia_item)
 
         self.SetMenuBar(menu_bar)
 
-    def on_open_dialog(self, event):
+    def on_open_dialog(self, event=None):
         dialog = wx.FileDialog(self, 'Open snapshot:', style=wx.DD_DEFAULT_STYLE)
         if dialog.ShowModal() == wx.ID_OK:
             self.h5_data = H5Data(dialog.GetPath())
@@ -239,11 +156,14 @@ class Frame(wx.Frame):
     
     def on_hist(self, evt):
         hist(self)
+    
+    def on_julia(self, evt):
+        JuliaFrame(self)
 
 if __name__ == '__main__':
     app = wx.App(False)
     frame = Frame()
-    frame.Show()
+    #frame.Show()
     
     # Uncomment for debug
     #import wx.lib.inspection

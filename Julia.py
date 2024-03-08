@@ -1,6 +1,92 @@
+import wx
 import numpy as np
 from numba import njit, prange
 from matplotlib.colors import hsv_to_rgb
+
+
+class JuliaFrame(wx.Frame):
+    def __init__(self, parent):
+        super().__init__(parent, title='Julia set')
+
+        # Create a placement style for widgets
+        box_sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        # Create canvas for OpenGL
+        #self.canvas = GLCanvas(self)
+        # Add widget
+        #box_sizer.Add(self.canvas, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.bitmap = wx.Bitmap()
+        self.julia = JuliaSet()
+        self.img_ctrl = wx.StaticBitmap(self, bitmap=self.bitmap)
+        box_sizer.Add(self.img_ctrl, 0, wx.ALL | wx.EXPAND, 5)
+
+        # Arrange placement style
+        self.SetSizer(box_sizer)
+
+        self.timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.julia_zoom, self.timer)
+        
+        self.timer2 = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.julia_rot, self.timer2)
+
+        self.Bind(wx.EVT_MOTION, self.OnMouseMove)
+
+        self.Bind(wx.EVT_SIZE, self.OnChange)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_LEFT_DCLICK, self.OnDClick)
+        self.Bind(wx.EVT_RIGHT_DOWN, self.OnRClick)
+        
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.Bind(wx.EVT_MOTION, self.OnMouseMove)
+        
+        self.Show()
+
+    def OnLeftDown(self, event):
+        self.mouse_pos_init = event.GetPosition()
+
+    def OnMouseMove(self, event):
+        self.mouse_pos_current = event.GetPosition()
+        if event.LeftIsDown():
+            size = self.GetSize()
+            delta = self.mouse_pos_current - self.mouse_pos_init
+            self.julia.shift(delta, size)
+            self.mouse_pos_init = self.mouse_pos_current
+            self.OnChange()
+
+    def julia_zoom(self, event):
+        self.julia.set_zoom(1.005)
+        self.OnChange()
+
+    def julia_rot(self, event):
+        self.julia.set_rot(0.005)
+        self.OnChange()
+
+    def OnDClick(self, event):
+        if self.timer2.IsRunning():
+            self.timer2.Stop()
+        else:
+            self.timer2.Start(50)
+
+    def OnRClick(self, event):
+        if self.timer.IsRunning():
+            self.timer.Stop()
+        else:
+            self.timer.Start(100)
+
+    def OnChange(self, evt=None):
+        size = self.Size
+        self.bitmap = wx.Bitmap.FromBuffer(size[0], size[1],
+            self.julia.get_julia_jit(size[0], size[1]))
+        self.Refresh()
+
+    def OnPaint(self, evt=None):
+        dc = wx.PaintDC(self)
+        try:
+            dc.DrawBitmap(self.bitmap, 0, 0)
+        except ValueError:  # in case bitmap has not yet been initialized
+            pass
+
 
 class JuliaSet():
     def __init__(self):
