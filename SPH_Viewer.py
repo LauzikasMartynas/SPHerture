@@ -1,14 +1,7 @@
 import wx
 import numpy as np
-import matplotlib
-matplotlib.use('WXAgg', force=True)
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
-from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2Wx
-
 import multiprocessing as mp
 
-#from MyOpenGL import GLCanvas
 from Julia import JuliaFrame
 from hdf5 import H5Data
 from display import DisplayPanel

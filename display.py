@@ -2,7 +2,6 @@ import wx
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-import multiprocessing as mp
 import threading
 
 from hdf5 import H5Data
