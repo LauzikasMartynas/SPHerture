@@ -116,6 +116,10 @@ class Frame(wx.Frame):
         #self.h5_data = H5Data('/Users/martynas/App/App/snap_050.hdf5')
         #SecondaryFrame(self)
         
+        #self.Show()
+        
+        self.Bind(wx.EVT_CLOSE, self.OnExit)
+        
         self.on_open_dialog()
         
         
@@ -163,10 +167,13 @@ class Frame(wx.Frame):
     def on_julia(self, evt):
         JuliaFrame(self)
 
+    def OnExit(self, evt):
+        self.Destroy()
+        
+
 if __name__ == '__main__':
     app = wx.App(False)
     frame = Frame()
-    #frame.Show()
     
     # Uncomment for debug
     #import wx.lib.inspection
