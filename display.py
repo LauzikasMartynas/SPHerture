@@ -12,9 +12,9 @@ class DisplayPanel(wx.Panel):
         self.SetSize((600, 600))
         
         size = self.GetSize()
-        self.x = (size[0]/20,0,0)
-        self.y = (0,-size[0]/20,0)
-        self.z = (0,0,size[0]/20)
+        self.x = (int(size[0]/20),0,0)
+        self.y = (0,-int(size[0]/20),0)
+        self.z = (0,0,int(size[0]/20))
         
         self.mode = 'scatter'
         self.h5_data = parent.h5_data
@@ -84,9 +84,10 @@ class DisplayPanel(wx.Panel):
         
         # Draw coord axes
         dc.SetPen(wx.RED_PEN)
-        dc.DrawLine(10, height-10, 10+self.x[0], height-10+self.x[1])
-        dc.DrawLine(10, height-10, 10+self.y[0], height-10+self.y[1])
-        dc.DrawLine(10, height-10, 10+self.z[0], height-10+self.z[1])
+        lines = ((10, height-10, 10+int(self.x[0]), height-10+int(self.x[1])),
+                    (10, height-10, 10+int(self.y[0]), height-10+int(self.y[1])),
+                    (10, height-10, 10+int(self.z[0]), height-10+int(self.z[1])))
+        dc.DrawLineList(lines)
         
     def get_ratio(self, delta):
         size = self.GetSize()
