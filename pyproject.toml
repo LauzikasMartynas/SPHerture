@@ -8,8 +8,8 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 wxpython = "^4.2.1"
-numba = "^0.59.0"
 matplotlib = "^3.8.3"
+numba = "^0.59.0"
 scipy = "^1.12.0"
 h5py = "^3.10.0"
 
