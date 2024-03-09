@@ -10,8 +10,8 @@
 3. Install and activate Python 3.9.6 for the project:
 
 ```bash
-pyenv install 3.9.6
-pyenv local 3.9.6
+pyenv install 3.11.8
+pyenv local 3.11.8
 ```
 
 4. Create virtual environment and install dependencies:
