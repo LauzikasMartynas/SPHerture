@@ -7,7 +7,7 @@
 
 2. Clone the repository and enter it's directory.
 
-3. Install and activate Python 3.9.6 for the project:
+3. Install and activate Python 3.11.8 for the project:
 
 ```bash
 pyenv install 3.11.8
