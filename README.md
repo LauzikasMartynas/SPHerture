@@ -7,7 +7,7 @@
 
 2. Clone the repository and enter it's directory.
 
-3. Install and activate Python 3.9.6 for the project:
+3. Install and activate Python 3.11.8 for the project:
 
 ```bash
 pyenv install 3.11.8
@@ -17,7 +17,7 @@ pyenv local 3.11.8
 4. Create virtual environment and install dependencies:
 
 ```bash
-poetry install --no-root
+poetry install
 ```
 
 5. Run:
