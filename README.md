@@ -17,7 +17,7 @@ pyenv local 3.11.8
 4. Create virtual environment and install dependencies:
 
 ```bash
-poetry install --no-root
+poetry install
 ```
 
 5. Run:
