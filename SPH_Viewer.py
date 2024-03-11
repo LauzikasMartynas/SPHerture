@@ -1,128 +1,70 @@
 import wx
 import numpy as np
-import multiprocessing as mp
 
-from Julia import JuliaFrame
+from VPJulia import VPJulia
 from hdf5 import H5Data
-from display import DisplayPanel
 from plt import hist
+from VP import DisplayPanel
 
-class SecondaryFrame(wx.Frame):
-    def __init__(self, parent):
-        super().__init__(parent, title='Scatter plot')
-        self.h5_data = parent.h5_data
+class MyFrame(wx.Frame):
+    def __init__(self):
+        super().__init__(parent=None, title='SPH Viewer')
         
-        self.SetMinSize(self.GetSize())
-
-        self.box_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.InitUI()
         
-        self.image_panel = DisplayPanel(self)
-        
-        self.box_sizer.Add(self.image_panel, 1, wx.EXPAND|wx.ALL, 1)
+        self.on_open_dialog()
         
         self.control_sizer = wx.BoxSizer(wx.HORIZONTAL)
         
+        self.available_data = self.h5_data.keys
+        self.drop_list = wx.Choice(self, choices=self.available_data, style=wx.CB_READONLY)
+        self.drop_list.SetStringSelection('Density')
+        self.control_sizer.Add(self.drop_list, 0, wx.ALIGN_CENTER)
+        
         self.slider = wx.Slider(self, value=20, minValue=0, maxValue=40)
+        self.control_sizer.AddSpacer(10)
         self.control_sizer.Add(wx.StaticText(self, label='Hue:'), 0, wx.ALIGN_CENTER)
-        self.control_sizer.Add(self.slider, 0, wx.ALIGN_CENTER|wx.ALL, 5)
-        #self.text = wx.StaticText(self, label=str(self.slider.GetValue()))
-        #self.control_sizer.Add(self.text, wx.ALIGN_CENTER|wx.ALL, 5)
+        self.control_sizer.Add(self.slider, 0, wx.ALIGN_CENTER)
+        
+        self.available_cmaps = ['HSL', 'SingleHue']
+        self.drop_cmap = wx.Choice(self, choices=self.available_cmaps, style=wx.CB_READONLY)
+        self.drop_cmap.SetStringSelection('HSL')
+        self.control_sizer.AddSpacer(10)
+        self.control_sizer.Add(self.drop_cmap, 0, wx.ALIGN_CENTER)
         
         self.check_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.check1 = wx.CheckBox(self, label='Smoothing')
-        self.check1.SetValue(False)
-        self.check_sizer.Add(self.check1, wx.ALIGN_CENTER)
-        self.check2 = wx.CheckBox(self, label='Log')
-        self.check_sizer.Add(self.check2, wx.ALIGN_CENTER)
+        
+        self.check_sc = wx.CheckBox(self, label='Smoothing')
+        self.check_sc.SetValue(False)
+        self.check_sizer.Add(self.check_sc, wx.ALIGN_CENTER)
+        
+        self.check_log = wx.CheckBox(self, label='Log')
+        self.check_log.SetValue(True)
+        self.check_sizer.Add(self.check_log, wx.ALIGN_CENTER)
         
         self.control_sizer.AddSpacer(10)
         self.control_sizer.Add(self.check_sizer, 0, wx.ALIGN_CENTER)
         
+        self.image_panel = DisplayPanel(self)
+        
+        self.box_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.box_sizer.Add(self.image_panel, 1, wx.EXPAND|wx.ALL, 1)
         self.box_sizer.Add(self.control_sizer, 0, wx.ALIGN_CENTER)
         
         self.slider.Bind(wx.EVT_SCROLL, self.OnScroll)
-        self.check1.Bind(wx.EVT_CHECKBOX, self.OnCheck1)
-        self.check2.Bind(wx.EVT_CHECKBOX, self.OnCheck2)
+        self.drop_list.Bind(wx.EVT_CHOICE, self.OnChoice)
+        self.drop_cmap.Bind(wx.EVT_CHOICE, self.OnCmap)
+        self.check_sc.Bind(wx.EVT_CHECKBOX, self.OnCheck_log)
+        self.check_log.Bind(wx.EVT_CHECKBOX, self.OnCheck_sc)
         
         self.SetSizer(self.box_sizer)
         
-        self.init_controls()
-        
-        self.image_panel.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
-        
-        self.Show()
-        
-        
-    def OnKeyPress(self, event):
-        keycode = event.GetUnicodeKey()
-        if keycode in [76, 108]:
-            self.h5_data.switch_log()
-
-        if keycode in [68, 100]:
-            if self.image_panel.mode == 'scatter':
-                self.image_panel.mode = 'density'
-            else:
-                self.image_panel.mode = 'scatter'
-
-        if keycode in [83, 115]:
-            if self.image_panel.mode == 'scatter':
-                return
-            if self.image_panel.mode == 'density':
-                self.image_panel.mode = 'slice'
-            else:
-                self.image_panel.mode = 'density'
-        
-
-        self.image_panel.Refresh()
-        self.SetTicks()
-    
-    def SetTicks(self, evt=None):
-        if self.image_panel.mode == 'density':
-            self.check1.SetValue(True)
-        if self.image_panel.mode == 'scatter':
-            self.check1.SetValue(False)
-        self.check2.SetValue(self.h5_data.log)
-        
-    def init_controls(self):
-        self.SetTicks()
-        self.OnScroll()
-        
-    def OnCheck1(self, evt):
-        evtobj = evt.GetEventObject()
-        if evtobj.GetValue():
-            self.image_panel.mode = 'density'
-        else:
-            self.image_panel.mode = 'scatter'
-        self.image_panel.OnChange()
-    
-    def OnCheck2(self, evt):
-        self.h5_data.switch_log()
-        self.image_panel.OnChange()
-    
-    def OnScroll(self, evt=None):
-        value = self.slider.GetValue()
-        self.h5_data.change_color(value)
-        #self.text.SetLabel(str(value))
-        self.image_panel.OnChange()
-
-class Frame(wx.Frame):
-    def __init__(self):
-        # Create a window with a panel where widgets are placed
-        super().__init__(parent=None, title='SPH Viewer')
-        self.SetMinSize(self.GetSize())
-        self.SetSize(self.GetSize())
-        self.InitUI()
-
-        #self.h5_data = H5Data('/Users/martynas/App/App/snap_050.hdf5')
-        #SecondaryFrame(self)
-        
-        #self.Show()
-        
         self.Bind(wx.EVT_CLOSE, self.OnExit)
         
-        self.on_open_dialog()
+        self.Fit()
+        self.Show()
         
-        
+            
     def InitUI(self):
         # Create File menu
         file_menu = wx.Menu()
@@ -130,8 +72,8 @@ class Frame(wx.Frame):
         
         tools_menu = wx.Menu()
         tools_menu_hist_item = tools_menu.Append(wx.ID_ANY, 'Histogram')
-        tools_menu_julia_item = tools_menu.Append(wx.ID_ANY, 'Julia Set')
-        
+        tools_menu_VPjulia_item = tools_menu.Append(wx.ID_ANY, 'VP Julia Set')
+                
         # Create menu bar and add File menu
         menu_bar = wx.MenuBar()
         menu_bar.Append(file_menu, '&File')
@@ -140,7 +82,7 @@ class Frame(wx.Frame):
         # Add events
         self.Bind(wx.EVT_MENU, self.on_open_dialog, source=file_menu_open_item)
         self.Bind(wx.EVT_MENU, self.on_hist, source=tools_menu_hist_item)
-        self.Bind(wx.EVT_MENU, self.on_julia, source=tools_menu_julia_item)
+        self.Bind(wx.EVT_MENU, self.on_VPjulia, source=tools_menu_VPjulia_item)
 
         self.SetMenuBar(menu_bar)
 
@@ -152,28 +94,48 @@ class Frame(wx.Frame):
         if dialog.ShowModal() == wx.ID_OK:
             try:
                 self.h5_data = H5Data(dialog.GetPath())
-                SecondaryFrame(self)
             except:
                 dlg = wx.MessageDialog(self, "", "No bueno!", wx.OK | wx.ICON_WARNING)
                 dlg.ShowModal()
                 dlg.Destroy()
                 self.on_open_dialog()
-        
         dialog.Destroy()
     
     def on_hist(self, evt):
         hist(self)
-    
-    def on_julia(self, evt):
-        JuliaFrame(self)
+        
+    def on_VPjulia(self, evt):
+        frame = VPJulia(self)
+        frame.Show()
 
     def OnExit(self, evt):
         self.Destroy()
         
+    def OnCheck_log(self, evt):
+        self.image_panel.refresh()
+    
+    def OnCheck_sc(self, evt):
+        self.image_panel.refresh()
+    
+    def OnScroll(self):
+        value = self.slider.GetValue()
+        self.h5_data.change_color(value)
+        self.image_panel.Refresh()
+
+    def OnChoice(self, evt):
+        evtobj = evt.GetEventObject()
+        dataset = evtobj.GetStringSelection()
+        self.image_panel.refresh()
+
+    def OnCmap(self, evt):
+        evtobj = evt.GetEventObject()
+        cm = evtobj.GetStringSelection()
+        self.h5_data.cmap = cm
+        self.image_panel.refresh()
 
 if __name__ == '__main__':
     app = wx.App(False)
-    frame = Frame()
+    frame = MyFrame()
     
     # Uncomment for debug
     #import wx.lib.inspection

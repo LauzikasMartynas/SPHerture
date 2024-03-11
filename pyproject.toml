@@ -6,12 +6,14 @@ authors = ["LauzikasMartynas <77410410+LauzikasMartynas@users.noreply.github.com
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
-wxpython = "^4.2.1"
+python = "^3.10"
+wxpython = "^4.0.7"
 matplotlib = "^3.8.3"
 numba = "^0.59.0"
 scipy = "^1.12.0"
 h5py = "^3.10.0"
+pyopengl = "^3.1.7"
+vispy = "^0.14.1"
 
 
 [build-system]
