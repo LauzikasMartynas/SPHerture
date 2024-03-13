@@ -208,6 +208,24 @@ files = [
 ]
 
 [[package]]
+name = "importlib-resources"
+version = "6.3.0"
+description = "Read resources from Python packages"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "importlib_resources-6.3.0-py3-none-any.whl", hash = "sha256:783407aa1cd05550e3aa123e8f7cfaebee35ffa9cb0242919e2d1e4172222705"},
+    {file = "importlib_resources-6.3.0.tar.gz", hash = "sha256:166072a97e86917a9025876f34286f549b9caf1d10b35a1b372bffa1600c6569"},
+]
+
+[package.dependencies]
+zipp = {version = ">=3.1.0", markers = "python_version < \"3.10\""}
+
+[package.extras]
+docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (<7.2.5)", "sphinx (>=3.5)", "sphinx-lint"]
+testing = ["jaraco.collections", "pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-mypy", "pytest-ruff (>=0.2.1)", "zipp (>=3.17)"]
+
+[[package]]
 name = "kiwisolver"
 version = "1.4.5"
 description = "A fast implementation of the Cassowary constraint solver"
@@ -391,6 +409,7 @@ files = [
 contourpy = ">=1.0.1"
 cycler = ">=0.10"
 fonttools = ">=4.22.0"
+importlib-resources = {version = ">=3.2.0", markers = "python_version < \"3.10\""}
 kiwisolver = ">=1.3.1"
 numpy = ">=1.21,<2"
 packaging = ">=20.0"
@@ -479,13 +498,13 @@ files = [
 
 [[package]]
 name = "packaging"
-version = "23.2"
+version = "24.0"
 description = "Core utilities for Python packages"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "packaging-23.2-py3-none-any.whl", hash = "sha256:8c491190033a9af7e1d931d0b5dacc2ef47509b34dd0de67ed209b5203fc88c7"},
-    {file = "packaging-23.2.tar.gz", hash = "sha256:048fb0e9405036518eaaf48a55953c750c11e1a1b68e0dd1a9d62ed0c092cfc5"},
+    {file = "packaging-24.0-py3-none-any.whl", hash = "sha256:2ddfb553fdf02fb784c234c7ba6ccc288296ceabec964ad2eae3777778130bc5"},
+    {file = "packaging-24.0.tar.gz", hash = "sha256:eb82c5e3e56209074766e6885bb04b8c38a0c015d0a30036ebe7ece34c9989e9"},
 ]
 
 [[package]]
@@ -723,35 +742,42 @@ wx = ["wxPython"]
 
 [[package]]
 name = "wxpython"
-version = "4.2.1"
+version = "4.2.0"
 description = "Cross platform GUI toolkit for Python, \"Phoenix\" version"
 optional = false
 python-versions = "*"
 files = [
-    {file = "wxPython-4.2.1-cp310-cp310-macosx_10_10_universal2.whl", hash = "sha256:3fd606d10db694c29f712f13dc3d3179d0204a71f6c1fbb5fcee859d03e9ff97"},
-    {file = "wxPython-4.2.1-cp310-cp310-win32.whl", hash = "sha256:5b233c39d7bfb53b9c4928ee7c86d626f1f7a716a6dfc3acc152bb437e658751"},
-    {file = "wxPython-4.2.1-cp310-cp310-win_amd64.whl", hash = "sha256:bb7988814e706eb00792589d606d317da5661dcffbb09263cd20da956c46bcbb"},
-    {file = "wxPython-4.2.1-cp311-cp311-macosx_10_10_universal2.whl", hash = "sha256:e87960d1963e291d4009c8547c85716b7d5325eb828cd183fdb28d441d6c3787"},
-    {file = "wxPython-4.2.1-cp311-cp311-win32.whl", hash = "sha256:a41f3e03c3bfbe80864d7456f5c1236991fa937eedb60b986bd67e1bb47b7c3d"},
-    {file = "wxPython-4.2.1-cp311-cp311-win_amd64.whl", hash = "sha256:3062b4d2f5d6dcf1d59983797fc067270a5ce829a918d52a516212e798f0c9ae"},
-    {file = "wxPython-4.2.1-cp312-cp312-macosx_10_10_universal2.whl", hash = "sha256:957a6e7cc68a8e4d7ca49c72a691b6efd5684040f4f03b112d0122e7ab470497"},
-    {file = "wxPython-4.2.1-cp312-cp312-win32.whl", hash = "sha256:8d846a785cd33c31e7eb42038eb159c88977d38208496b8322d14aef107f3eec"},
-    {file = "wxPython-4.2.1-cp312-cp312-win_amd64.whl", hash = "sha256:1ca327c877f276b33e2c4b6cb8417964305ee505e2509fb2000851d48b82328f"},
-    {file = "wxPython-4.2.1-cp38-cp38-macosx_11_0_universal2.whl", hash = "sha256:a7eefbc7fe7ac86479d814302711f8f118ba214229aa2a6d789fb888ee79abaa"},
-    {file = "wxPython-4.2.1-cp38-cp38-win32.whl", hash = "sha256:ff0423e84a5aaa203e7c1c3d36f8417c54cb4cd8849a43b3c917ac3bfafa4ad7"},
-    {file = "wxPython-4.2.1-cp38-cp38-win_amd64.whl", hash = "sha256:903f45131107802b38c0b5d0e964a2ce0295b67e8c3d7659821ac5b26a35658b"},
-    {file = "wxPython-4.2.1-cp39-cp39-macosx_10_10_universal2.whl", hash = "sha256:a15b76dad81f9bd6ceadf00fbede9aff9e09859a9aa698c53e8bd56b95d2effc"},
-    {file = "wxPython-4.2.1-cp39-cp39-win32.whl", hash = "sha256:c4db6d7f054d76cb1532dbd5da81b87b7a90dc9fdf18a3540063b2f8f5f3e663"},
-    {file = "wxPython-4.2.1-cp39-cp39-win_amd64.whl", hash = "sha256:0595fdd133a552a232a99759b87891136a4500c806bbea68b888e7b6f2c9bbea"},
-    {file = "wxPython-4.2.1.tar.gz", hash = "sha256:e48de211a6606bf072ec3fa778771d6b746c00b7f4b970eb58728ddf56d13d5c"},
+    {file = "wxPython-4.2.0-cp310-cp310-macosx_10_10_universal2.whl", hash = "sha256:f15b04aca27fe5b42af5eeb3952ab9a2cf7d6b375bf237b76f0c9d9ab3bf08c8"},
+    {file = "wxPython-4.2.0-cp310-cp310-win_amd64.whl", hash = "sha256:3bc788f046ee80f41c814ab2f75f87b0d0cd42fd3fb950815199c7be57b5ae12"},
+    {file = "wxPython-4.2.0-cp37-cp37m-win_amd64.whl", hash = "sha256:7894b4d3fbbf726d8315d08d030b881bd29ed7476bc5f6ae90262064de2a664e"},
+    {file = "wxPython-4.2.0-cp38-cp38-macosx_11_0_universal2.whl", hash = "sha256:0edf70129a9c5554d0f788c7cd37e60e7d326a14d4370df43870cc637c2534f3"},
+    {file = "wxPython-4.2.0-cp38-cp38-win_amd64.whl", hash = "sha256:8a278028b0a92a7ff9bcf022faf92ebfe35f53b61ca486338c46f207c4faaa4a"},
+    {file = "wxPython-4.2.0-cp39-cp39-macosx_10_10_universal2.whl", hash = "sha256:f79b8103ec62bff14bb653c9aa17a55fb1398a465b3b9371bcd80272eb1e3152"},
+    {file = "wxPython-4.2.0-cp39-cp39-win_amd64.whl", hash = "sha256:8b53eb64549996a04f773bdec92b4612ecf7d622e9bbdeb85249062a469a5eb2"},
+    {file = "wxPython-4.2.0.tar.gz", hash = "sha256:663cebc4509d7e5d113518865fe274f77f95434c5d57bc386ed58d65ceed86c7"},
 ]
 
 [package.dependencies]
-numpy = {version = "*", markers = "python_version >= \"3.0\" and python_version < \"3.12\""}
+numpy = {version = "*", markers = "python_version >= \"3.0\""}
 pillow = "*"
 six = "*"
 
+[[package]]
+name = "zipp"
+version = "3.18.0"
+description = "Backport of pathlib-compatible object wrapper for zip files"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "zipp-3.18.0-py3-none-any.whl", hash = "sha256:c1bb803ed69d2cce2373152797064f7e79bc43f0a3748eb494096a867e0ebf79"},
+    {file = "zipp-3.18.0.tar.gz", hash = "sha256:df8d042b02765029a09b157efd8e820451045890acc30f8e37dd2f94a060221f"},
+]
+
+[package.extras]
+docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-lint"]
+testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-ignore-flaky", "pytest-mypy", "pytest-ruff (>=0.2.1)"]
+
 [metadata]
 lock-version = "2.0"
-python-versions = "^3.10"
-content-hash = "b9030e22ade1b7a00db70bb8a1911b146b1affac215544cfdd446046c843f575"
+python-versions = "^3.9"
+content-hash = "52b6f7914f4248f84ab560e7457d3e77d8b251ae689d4086954fc56313bf0bbf"
