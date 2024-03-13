@@ -17,7 +17,7 @@ class MyFrame(wx.Frame):
         self.control_sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         self.available_data = self.h5_data.keys
-        self.drop_list = wx.Choice(self, choices=self.available_data, style=wx.CB_READONLY)
+        self.drop_list = wx.Choice(self, choices=self.available_data)
         self.drop_list.SetStringSelection('Density')
         self.control_sizer.Add(self.drop_list, 0, wx.ALIGN_CENTER)
         
@@ -27,7 +27,7 @@ class MyFrame(wx.Frame):
         self.control_sizer.Add(self.slider, 0, wx.ALIGN_CENTER)
         
         self.available_cmaps = ['HSL', 'SingleHue', 'CHC', 'Diverging', 'PLT', 'RYBC', 'Gray']
-        self.drop_cmap = wx.Choice(self, choices=self.available_cmaps, style=wx.CB_READONLY)
+        self.drop_cmap = wx.Choice(self, choices=self.available_cmaps)
         self.drop_cmap.SetStringSelection('HSL')
         self.control_sizer.AddSpacer(10)
         self.control_sizer.Add(self.drop_cmap, 0, wx.ALIGN_CENTER)
@@ -46,7 +46,7 @@ class MyFrame(wx.Frame):
         self.control_sizer.Add(self.check_sizer, 0, wx.ALIGN_CENTER)
         
         self.available_vectors = self.h5_data.vector_keys
-        self.drop_vectors = wx.Choice(self, choices=self.available_vectors, style=wx.CB_READONLY)
+        self.drop_vectors = wx.Choice(self, choices=self.available_vectors)
         self.drop_vectors.SetStringSelection('None')
         self.control_sizer.AddSpacer(10)
         self.control_sizer.Add(self.drop_vectors, 0, wx.ALIGN_CENTER)
@@ -68,6 +68,7 @@ class MyFrame(wx.Frame):
         
         self.Bind(wx.EVT_CLOSE, self.OnExit)
         
+        self.SetAutoLayout(True)
         self.Fit()
         self.SetMinSize(self.GetSize())
         self.Show()

@@ -6,7 +6,7 @@ authors = ["LauzikasMartynas <77410410+LauzikasMartynas@users.noreply.github.com
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.10.13"
+python = "3.11.8"
 wxpython = "4.2.0"
 matplotlib = "^3.8.3"
 numba = "^0.59.0"

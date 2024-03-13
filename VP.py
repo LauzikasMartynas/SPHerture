@@ -16,7 +16,7 @@ class DisplayPanel(wx.Panel):
         self.Bind(wx.EVT_SIZE, self.on_size)
         self.Bind(wx.EVT_CLOSE, self.on_quit)
         
-        self.canvas = MyCanvas(parent=self, keys='interactive', show=True, size=(800,500))
+        self.canvas = MyCanvas(app='wx', parent=self, keys='interactive', show=True, size=(800,500))
         self.draw_scatter()
         self.canvas.view.camera.set_range()
         
