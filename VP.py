@@ -188,12 +188,18 @@ class MyCanvas(scene.SceneCanvas):
         # Add vectors
         self.arrows = scene.visuals.Arrow(parent=self.view.scene)
         
+        self.text = scene.visuals.Text(str(self.view.camera), parent=self.view, pos=(self.size[0], self.size[1]),
+                                    anchor_x='right',
+                                    anchor_y='top',
+                                    color='white', font_size=7)
+        #self.text.pos = self.size[0] // 2, self.size[1] // 3
+        
         # Add volume
         self.vol = None
         self.interpolation='linear'
         self.raycasting_mode='volume'
         self.plane_normal=[0,1,0]
-        self.plane_position=[0,0,0]
+        self.plane_position=[50, 50, 50]
         self.plane_thickness=1
         
         # Add XYZ widget
@@ -224,13 +230,6 @@ class MyCanvas(scene.SceneCanvas):
             else:
                 self.axis.visible = True
             self.update()
-    
-    #def on_draw(self, event):
-    #   gloo.clear('black')
-    #    self.visual.draw()
-        
-    #def on_exit(self, event):
-        #self.Destroy()
     
     def make_xyz(self):
         self.xyz_size = self.size[1]/10

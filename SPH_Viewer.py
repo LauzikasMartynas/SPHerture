@@ -148,10 +148,10 @@ class MyFrame(wx.Frame):
         if evtobj.GetValue():
             self.drop_vectors.SetStringSelection('None')
             self.drop_vectors.Disable()
+            self.image_panel.canvas.plane_position[1] = self.slider.GetValue()
+            #self.image_panel.canvas.vol.threshold = self.slider.GetValue()/100
+            #self.image_panel.canvas.vol.attenuation = self.slider.GetValue()/100
             self.image_panel.draw_volume(True)
-            self.image_panel.canvas.vol.plane_position[1] = self.slider.GetValue()
-            self.image_panel.canvas.vol.threshold = self.slider.GetValue()/100
-            self.image_panel.canvas.vol.attenuation = self.slider.GetValue()/100
             self.image_panel.canvas.update()
         else:
             self.image_panel.canvas.vol.visible = False
@@ -161,8 +161,8 @@ class MyFrame(wx.Frame):
     # Change property of an object, (object dependant)
     def OnScroll(self, evt):
         if self.check_vol.GetValue():
-            self.image_panel.canvas.vol.threshold = self.slider.GetValue()/100
-            self.image_panel.canvas.vol.attenuation = self.slider.GetValue()/100
+            #self.image_panel.canvas.vol.threshold = self.slider.GetValue()/100
+            #self.image_panel.canvas.vol.attenuation = self.slider.GetValue()/100
             self.image_panel.canvas.plane_position[1] = self.slider.GetValue()
             self.image_panel.canvas.update()
         else:
@@ -223,4 +223,3 @@ if __name__ == '__main__':
     #wx.lib.inspection.InspectionTool().Show()
     
     app.MainLoop()
-# FLAKE8 ???
