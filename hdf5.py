@@ -21,6 +21,8 @@ class H5Data():
         # Dataset properties
         self.dataset_name = ''
         self.dataset_data = None
+        self.dataset_name_vec = ''
+        self.dataset_data_vec = None
         self.dataset_min = None
         self.dataset_max = None
 
@@ -29,7 +31,7 @@ class H5Data():
             self.path = path
             
             # Get available datasets
-            self.keys = ['None']
+            self.keys = []
             self.vector_keys = ['None']
             for key in file['PartType0'].keys():
                 if key in ('Coordinates', 'HydroAcceleration'):
@@ -37,6 +39,8 @@ class H5Data():
                 if isinstance(file['PartType0'][key][0], (list, tuple, np.ndarray)):
                     self.vector_keys.append(key)
                 self.keys.append(key)
+        
+        self.get_pos()
             
     def get_pos(self):
         if self.pos is None:
@@ -53,33 +57,37 @@ class H5Data():
                 self.zmin = np.amin(self.pos[:,2])
                 self.zmax = np.amax(self.pos[:,2])
                 
-                if header.attrs['NumPart_Total'][5]:
-                    self.pos = self.pos - file['PartType5']['Coordinates'][0]
-                else:
-                    self.pos = self.pos - [self.xmax/2, self.ymax/2, self.zmax/2]
-                    self.xmin = np.amin(self.pos[:,0])
-                    self.xmax = np.amax(self.pos[:,0])
-                    self.ymin = np.amin(self.pos[:,1])
-                    self.ymax = np.amax(self.pos[:,1])
-                    self.zmin = np.amin(self.pos[:,2])
-                    self.zmax = np.amax(self.pos[:,2])
-                
                 # Prebuild Tree for Volume grid
-                rot_pos = np.empty_like(self.pos)
-                rot_pos[:,0] = self.pos[:,1] *1.1
-                rot_pos[:,1] = self.pos[:,2] *1.1
-                rot_pos[:,2] = self.pos[:,0] *1.1
-                self.Tree = KDTree(rot_pos, leafsize=100)
+                self.prebuild_volume()
         return self.pos
         
     def get_dataset(self, dataset):
         self.dataset_name = dataset
         with h5py.File(self.path, 'r') as file:
+            self.dataset_name = dataset
             self.dataset_data = file['PartType0'][dataset][()]
+            if isinstance(self.dataset_data[0], (list, tuple, np.ndarray)):
+                self.dataset_data = np.linalg.norm(self.dataset_data, axis=1)
+
             self.dataset_min = np.amin(self.dataset_data)
             self.dataset_max = np.amax(self.dataset_data)
             return self.dataset_data
-   
+
+    def get_dataset_vec(self, dataset):
+        if dataset not in self.vector_keys:
+            return
+        self.dataset_name_vec = dataset
+        with h5py.File(self.path, 'r') as file:
+            self.dataset_data_vec = file['PartType0'][self.dataset_name_vec][()]
+            return self.dataset_data_vec
+
+    def prebuild_volume(self):
+        rot_pos = np.empty_like(self.pos)
+        rot_pos[:,0] = self.pos[:,1] *1.1
+        rot_pos[:,1] = self.pos[:,0] *1.1
+        rot_pos[:,2] = self.pos[:,2] *1.1
+        self.Tree = KDTree(rot_pos, leafsize=100)
+        
     def get_volume(self, dataset, res):
         X, Y, Z = np.meshgrid(np.linspace(self.xmin, self.xmax, res, endpoint=False),
                               np.linspace(self.ymin, self.ymax, res, endpoint=False),
