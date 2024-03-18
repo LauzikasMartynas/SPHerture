@@ -4,8 +4,6 @@ from vispy.util.transforms import ortho, perspective, translate, rotate
 
 import matplotlib.pyplot as plt
 
-import struct
-
 # full gl+ context is required for instanced rendering
 use(gl='gl+')
 
@@ -24,18 +22,15 @@ uniform mat4 u_projection;
 
 uniform float u_scaling;
 
-// Internal variables
 varying vec4 v_fg_color;
 varying float hsml;
 varying float scaling;
-
 // Main
 void main (void) {
     v_fg_color  = vec4(a_color, 1.0);
-    hsml = a_hsml;
-    scaling = u_scaling;
+    hsml = a_hsml * u_scaling;
     gl_Position =  u_projection * u_view * u_model * vec4(a_position, 1.0);
-    gl_PointSize = 2.0 * scaling * hsml;
+    gl_PointSize = 2.0 * hsml;
 }
 """
 
@@ -43,7 +38,6 @@ FRAG_SHADER = """
 //#version 120
 //precision highp float;
 
-// Internal variables
 varying vec4 v_fg_color;
 varying float hsml;
 
@@ -62,7 +56,7 @@ void main()
 
 class GL_screen(app.Canvas):
     def __init__(self, data):
-        app.Canvas.__init__(self, keys='interactive', size=(800,800))
+        app.Canvas.__init__(self, keys='interactive', size=(500,500))
         ps = self.pixel_scale
         self.theta = 0
         self.phi = 0
@@ -121,7 +115,7 @@ class GL_screen(app.Canvas):
         self.range = min(1, self.range)
         self.projection = ortho(-self.range, self.range, -self.range, self.range, 1.0, -1.0)
         self.program['u_projection'] = self.projection
-        #self.program['u_scaling'] = self.scaling + self.scaling * event.delta[1]/20
+        #self.program['u_scaling'] /= event.delta[1]
         self.update()
 
     def on_mouse_press(self, event):
@@ -184,7 +178,8 @@ class GL_vbo(app.Canvas):
         self.program['u_model'] = self.model
         #print('View:', self.view)
         self.program['u_view'] = self.view
-        self.program['u_scaling'] = 1
+        self.scaling = 1
+        self.program['u_scaling'] = self.scaling
         
         gloo.set_state(clear_color='black', blend=True, preset='additive')
         gloo.set_viewport(0, 0, *self.size)
@@ -195,14 +190,15 @@ class GL_vbo(app.Canvas):
         self.update()
         
     def on_draw(self, event):
+        gloo.clear(color=True, depth=False)
         with self._fbo:
             gloo.clear('black')
             #gloo.set_vieport(0,0,*self.size)
             self.program.draw('points')
             self.im = gloo.util.read_pixels((0,0,self.size[0], self.size[1]), out_type='float')
             imager = np.copy(self.im[:,:,0])
-            imager[imager==0] += 1e-100
-            plt.imshow(np.log10(imager))
+            imager[imager<=0] = 1e-5
+            plt.imshow(np.log10(imager), vmin=0.01, vmax=1.5)
             plt.show()
 
     def on_resize(self, event):
@@ -211,12 +207,12 @@ class GL_vbo(app.Canvas):
         self.program['u_projection'] = self.projection
 
     def on_mouse_wheel(self, event):
-        self.range = self.range - self.range * event.delta[1]/20
-        self.range = max(0.01, self.range)
+        self.range = self.range - self.range * event.delta[1]/100
+        self.range = max(0.1, self.range)
         self.range = min(1, self.range)
         self.projection = ortho(-self.range, self.range, -self.range, self.range, 1.0, -1.0)
         self.program['u_projection'] = self.projection
-        #self.program['u_scaling'] = self.scaling + self.scaling * event.delta[1]/20
+        self.program['u_scaling'] = self.scaling/self.range
         self.update()
 
     def on_mouse_press(self, event):

@@ -242,10 +242,10 @@ class FileDialog(wx.FileDialog):
         dialog = wx.FileDialog(self, 'Open Gadget snapshot:',
                                 style=wx.DD_DEFAULT_STYLE,
                                 wildcard="HDF5 files (*.hdf5)|*.hdf5")
-        #path='/Users/martynas/App/SPHerture/snap_050.hdf5'
-        #frame = MyFrame(path)
-        #self.InitUI(frame)
-        #return
+        path='/Users/martynas/App/SPHerture/snap_050.hdf5'
+        frame = MyFrame(path)
+        self.InitUI(frame)
+        return
         if dialog.ShowModal() == wx.ID_OK:
             try:
                 frame = MyFrame(path=dialog.GetPath())
