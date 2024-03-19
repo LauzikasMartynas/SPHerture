@@ -1,9 +1,11 @@
 import wx
 import numpy as np
-from vispy import app, scene, color, gloo, use
+from vispy import app, scene, color, gloo, use, visuals
 from vispy.visuals.transforms import STTransform
+from vispy.util.transforms import ortho, perspective, translate, rotate
 from itertools import cycle
 from vispy.gloo import gl
+from gl import GL_vbo, VERT_SHADER, FRAG_SHADER
 
 class DisplayPanel(wx.Panel):
     def __init__(self, parent):
@@ -15,7 +17,7 @@ class DisplayPanel(wx.Panel):
         self.Bind(wx.EVT_SIZE, self.on_size)
         self.Bind(wx.EVT_CLOSE, self.on_exit)
         
-        self.canvas = MyCanvas(parent=self, keys='interactive')
+        self.canvas = MyCanvas(app='wx', parent=self, keys='interactive')
         self.draw_scatter()
         self.canvas.view.camera.set_range()
         self.canvas.view.camera.set_default_state()
@@ -57,7 +59,6 @@ class DisplayPanel(wx.Panel):
 
     def draw_arrows(self):
         dataset = self.parent.drop_vectors.GetStringSelection()
-        print(dataset)
         if dataset != 'None':
             self.canvas.arrows.visible = True
             vector_data = self.parent.h5_data.get_dataset_vec(dataset)
@@ -132,10 +133,6 @@ class DisplayPanel(wx.Panel):
             self.canvas.vol.visible = False
             return
         
-        # Hide other items
-        self.canvas.scatter.visible = False
-        self.canvas.arrows.visible = False
-        
         # Prevent repeated loading of the same dataset
         if self.old_dataset != data_set:
             self.current_data = self.parent.h5_data.get_volume(data_set, 128)
@@ -174,6 +171,23 @@ class DisplayPanel(wx.Panel):
             
         #self.canvas.vol.opacity = 0.25
         self.canvas.vol.visible = True
+
+    def draw_image(self):
+        vbo = GL_vbo(data = self.parent)
+        print(self.canvas.scene.describe_tree())
+        #imager = vbo.im[:,:,0]
+        #imager[imager<=0] = 1e-5
+        #plt.imshow(np.log10(imager), vmin=-1, vmax=2)
+        #plt.show()
+
+        #self.canvas.unfreeze()
+        #scene.visuals.Image(data=vbo.im, parent=self.canvas.view.scene)
+        #self.canvas.view.camera = scene.PanZoomCamera(aspect=1)
+        # flip y-axis to have correct aligment
+        #self.canvas.view.camera.flip = (0, 1, 0)
+        #self.canvas.view.camera.set_range()
+        #self.canvas.view.camera.zoom(0.1, (250, 200))
+        self.canvas.update()
 
     # Resize canvas with window resize
     def on_size(self, event):
@@ -228,6 +242,12 @@ class MyCanvas(scene.SceneCanvas):
         # Add vectors
         self.arrows = scene.visuals.Arrow(parent=self.view.scene)
         
+        # Add image
+        self.image = None
+        
+        # Add program
+        self.program = visuals.shaders.program.ModularProgram(VERT_SHADER, FRAG_SHADER)
+        
         # Add text
         #self.text = scene.visuals.Text(str(self.view.camera), parent=self.view, pos=(self.size[0], self.size[1]), anchor_x='right',anchor_y='top', color='white', font_size=7)
         #self.text.pos = self.size[0] // 2, self.size[1] // 3
@@ -246,11 +266,6 @@ class MyCanvas(scene.SceneCanvas):
         self.alpha = None
         #Enables isosurface opacity
         gloo.set_state('translucent')
-        
-        #grid = self.central_widget.add_grid(spacing=0)
-        #self.xyz_size1 = self.size[1]/10
-        #self.axis1 = scene.AxisWidget(orientation='bottom')
-        #grid.add_widget(self.axis1, row=1, col=1)
         
         # Add XYZ widget
         self.make_xyz()

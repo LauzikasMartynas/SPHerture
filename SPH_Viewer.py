@@ -139,7 +139,9 @@ class MyFrame(wx.Frame):
         GL_screen(data = self.h5_data)
         
     def on_gl_vbo(self, evt):
-        GL_vbo(data = self.h5_data)
+        self.image_panel.draw_image()
+        #print(vbo.im)
+        #scene.visuals.Image(vbo.im, parent=self.image_panel.canvas)
         
     def on_VPjulia(self, evt):
         frame = VPJulia(self)
@@ -242,10 +244,10 @@ class FileDialog(wx.FileDialog):
         dialog = wx.FileDialog(self, 'Open Gadget snapshot:',
                                 style=wx.DD_DEFAULT_STYLE,
                                 wildcard="HDF5 files (*.hdf5)|*.hdf5")
-        path='/Users/martynas/App/SPHerture/snap_050.hdf5'
-        frame = MyFrame(path)
-        self.InitUI(frame)
-        return
+        #path='/Users/martynas/App/SPHerture/snap_050.hdf5'
+        #frame = MyFrame(path)
+        #self.InitUI(frame)
+        #return
         if dialog.ShowModal() == wx.ID_OK:
             try:
                 frame = MyFrame(path=dialog.GetPath())
