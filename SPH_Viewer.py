@@ -13,11 +13,13 @@ import fnmatch
 from vispy import scene
 
 class MyFrame(wx.Frame):
-    def __init__(self, path):
-        super().__init__(parent=None, title='SPH Viewer')
-        self.h5_data = H5Data(path)
+    def __init__(self):
+        super().__init__(None, title='SPH Viewer')
+        FileDialog(self)
+        
+        self.h5_data = H5Data(self.path)
         # Create menu items and open dialog
-        #self.InitUI()
+        self.InitUI()
         
         # Sizers for image and controls
         self.root_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -136,6 +138,7 @@ class MyFrame(wx.Frame):
             self.current_snapshot -= 1
         if event.GetEventObject().GetLabel() == '>':
             self.current_snapshot += 1
+        
         path = os.path.join(self.current_dir, str(*self.snapshots[self.current_snapshot]))
         self.h5_data = H5Data(path)
         self.OnChoice(None)
@@ -257,41 +260,8 @@ class MyFrame(wx.Frame):
     def OnCmap(self, evt):
         self.image_panel.update()
 
-class FileDialog(wx.FileDialog):
-    def __init__(self):
-        super().__init__(parent=None,)
-        self.open_dialog()
-        
-    def open_dialog(self, event=None):
-        dialog = wx.FileDialog(self, 'Open Gadget snapshot:',
-                                style=wx.DD_DEFAULT_STYLE,
-                                wildcard="HDF5 files (*.hdf5)|*.hdf5")
-        #path='/Users/martynas/App/SPHerture/snap_050.hdf5'
-        #frame = MyFrame(path=dialog.GetPath())
-        #self.InitUI(frame)
-        #return
-        if dialog.ShowModal() == wx.ID_OK:
-            try:
-                frame = MyFrame(dialog.GetPath())
-                frame.current_snapshot = dialog.GetFilename()
-                frame.current_dir = dialog.GetDirectory()
-                self.get_all(frame)
-                self.InitUI(frame)
-                
-            except Exception as error:
-                dlg = wx.MessageDialog(self, type(error).__name__, "No bueno!", wx.OK | wx.ICON_WARNING)
-                dlg.ShowModal()
-                dlg.Destroy()
 
-        dialog.Destroy()
-
-    def get_all(self, frame):
-        filenames = next(os.walk(frame.current_dir), (None, None, []))[2]
-        template = frame.current_snapshot[0:-8]+'*'+frame.current_snapshot[-4:]
-        frame.snapshots = np.sort(fnmatch.filter(filenames, template))
-        frame.current_snapshot = np.where(frame.snapshots == frame.current_snapshot)[0]
-    
-    def InitUI(self, frame):
+    def InitUI(self):
         # Create File, Tools menu items
         file_menu = wx.Menu()
         file_menu_open_item = file_menu.Append(wx.ID_ANY, 'Open snapshot')
@@ -306,16 +276,50 @@ class FileDialog(wx.FileDialog):
         menu_bar.Append(tools_menu, '&Tools')
         
         # Add events
-        frame.Bind(wx.EVT_MENU, frame.on_open_snapshot, source=file_menu_open_item)
-        frame.Bind(wx.EVT_MENU, frame.on_hist, source=tools_menu_hist_item)
-        frame.Bind(wx.EVT_MENU, frame.on_gl, source=tools_menu_gl_item)
-        frame.Bind(wx.EVT_MENU, frame.on_gl_vbo, source=tools_menu_gl_vbo_item)
+        self.Bind(wx.EVT_MENU, self.on_open_snapshot, source=file_menu_open_item)
+        self.Bind(wx.EVT_MENU, self.on_hist, source=tools_menu_hist_item)
+        self.Bind(wx.EVT_MENU, self.on_gl, source=tools_menu_gl_item)
+        self.Bind(wx.EVT_MENU, self.on_gl_vbo, source=tools_menu_gl_vbo_item)
 
-        frame.SetMenuBar(menu_bar)
+        self.SetMenuBar(menu_bar)
+
+class FileDialog(wx.FileDialog):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+        self.open_dialog()
+        
+    def open_dialog(self, event=None):
+        dialog = wx.FileDialog(self, 'Open Gadget snapshot:',
+                                style=wx.DD_DEFAULT_STYLE,
+                                wildcard="HDF5 files (*.hdf5)|*.hdf5")
+        #path='/Users/martynas/App/SPHerture/snap_050.hdf5'
+        #frame = MyFrame(path=dialog.GetPath())
+        #self.InitUI(frame)
+        #return
+        if dialog.ShowModal() == wx.ID_OK:
+            try:
+                self.parent.path = dialog.GetPath()
+                self.parent.current_snapshot = dialog.GetFilename()
+                self.parent.current_dir = dialog.GetDirectory()
+                self.get_all()
+                
+            except Exception as error:
+                dlg = wx.MessageDialog(self, type(error).__name__, "No bueno!", wx.OK | wx.ICON_WARNING)
+                dlg.ShowModal()
+                dlg.Destroy()
+
+        dialog.Destroy()
+
+    def get_all(self):
+        filenames = next(os.walk(self.parent.current_dir), (None, None, []))[2]
+        template = self.parent.current_snapshot[0:-8]+'*'+self.parent.current_snapshot[-4:]
+        self.parent.snapshots = np.sort(fnmatch.filter(filenames, template))
+        self.parent.current_snapshot = np.where(self.parent.snapshots == self.parent.current_snapshot)[0]
         
 if __name__ == '__main__':
     app = wx.App(False)
-    dialog = FileDialog()
+    MyFrame()
     
     # Uncomment for debug
     #import wx.lib.inspection

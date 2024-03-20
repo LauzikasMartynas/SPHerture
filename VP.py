@@ -198,7 +198,7 @@ class DisplayPanel(wx.Panel):
         #plt.show()
 
         self.canvas.unfreeze()
-        scene.visuals.Image(data=vbo.im, parent=self.canvas.view.scene, cmap=self.get_cmap('Viridis'))
+        scene.visuals.Image(data=np.log10(vbo.im[:,:,0]), parent=self.canvas.view.scene, cmap=self.get_cmap('Viridis'))
         self.canvas.view.camera = scene.PanZoomCamera(aspect=1)
         # flip y-axis to have correct aligment
         self.canvas.view.camera.flip = (0, 1, 0)
