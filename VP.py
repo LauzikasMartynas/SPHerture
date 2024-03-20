@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 class DisplayPanel(wx.Panel):
     def __init__(self, parent):
         super().__init__(parent)
-        
         self.parent = parent
         self.old_dataset = ''
         

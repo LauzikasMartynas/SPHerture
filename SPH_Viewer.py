@@ -15,11 +15,11 @@ from vispy import scene
 class MyFrame(wx.Frame):
     def __init__(self):
         super().__init__(None, title='SPH Viewer')
+        # Create menu items and open dialog
+        self.InitUI()
         FileDialog(self)
         
         self.h5_data = H5Data(self.path)
-        # Create menu items and open dialog
-        self.InitUI()
         
         # Sizers for image and controls
         self.root_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -319,8 +319,11 @@ class FileDialog(wx.FileDialog):
         
 if __name__ == '__main__':
     app = wx.App(False)
-    MyFrame()
-    
+    frame=MyFrame()
+    if 'Win' in wx.GetOsDescription():
+        frame.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_MENU))
+        frame.Refresh()
+    #frame.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_MENU))
     # Uncomment for debug
     #import wx.lib.inspection
     #wx.lib.inspection.InspectionTool().Show()

@@ -145,7 +145,7 @@ class GL_screen(app.Canvas):
 
 class GL_vbo(app.Canvas):
     def __init__(self, data):
-        app.Canvas.__init__(self, show=False, keys='interactive', size=(800,800))
+        app.Canvas.__init__(self, show=False, size=(800,800))
  
         ps = self.pixel_scale
         if ps != 1.0:
@@ -201,42 +201,3 @@ class GL_vbo(app.Canvas):
             gloo.set_viewport(0,0,*self.size)
             self.program.draw('points')
             self.im = gloo.util.read_pixels((0,0,self.physical_size[0], self.physical_size[1]), out_type='float')
-        
-    def on_resize(self, event):
-        ratio = self.size[1]/self.cur_size
-        gloo.set_viewport(0, 0, *self.size)
-        self.projection = ortho(-self.range, self.range, -self.range, self.range, 10.0, -10.0)
-        self.program['u_projection'] = self.projection
-        self.scaling *= ratio
-        self.program['u_scaling'] = self.scaling/self.range
-        self.cur_size = self.size[1]
-        self.update()
-
-    def on_mouse_wheel(self, event):
-        self.range = self.range - self.range * event.delta[1]/50
-        self.range = max(0.1, self.range)
-        self.range = min(1, self.range)
-        self.projection = ortho(-self.range, self.range, -self.range, self.range, 10.0, -10.0)
-        self.program['u_projection'] = self.projection
-        self.program['u_scaling'] = self.scaling/self.range
-        self.update()
-
-    def on_mouse_press(self, event):
-        self.old_pos = event.pos
-
-    def on_mouse_move(self, event):
-        if event.button == 1 and event.is_dragging:
-            self.translate[0] -= (self.old_pos[0] - event.pos[0])/1000
-            self.translate[1] += (self.old_pos[1] - event.pos[1])/1000
-            self.view = translate(self.translate)
-            self.program['u_view'] = self.view
-            self.old_pos = event.pos
-            self.update()
-        if event.button == 2 and event.is_dragging:
-            self.phi -= (self.old_pos[0] - event.pos[0])/10
-            self.theta -= (self.old_pos[1] - event.pos[1])/10
-            self.model = np.dot(rotate(self.theta, (1, 0, 0)),
-                                rotate(self.phi, (0, 1, 0)))
-            self.program['u_model'] = self.model
-            self.old_pos = event.pos
-            self.update()
