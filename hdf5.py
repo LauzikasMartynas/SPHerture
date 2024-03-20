@@ -56,9 +56,6 @@ class H5Data():
                 self.ymax = np.amax(self.pos[:,1])
                 self.zmin = np.amin(self.pos[:,2])
                 self.zmax = np.amax(self.pos[:,2])
-                
-                # Prebuild Tree for Volume grid
-                self.prebuild_volume()
         return self.pos
         
     def get_dataset(self, dataset):
@@ -89,6 +86,7 @@ class H5Data():
         self.Tree = KDTree(rot_pos, leafsize=100)
         
     def get_volume(self, dataset, res):
+        self.prebuild_volume()
         X, Y, Z = np.meshgrid(np.linspace(self.xmin, self.xmax, res, endpoint=False),
                               np.linspace(self.ymin, self.ymax, res, endpoint=False),
                              np.linspace(self.zmin, self.zmax, res, endpoint=False))

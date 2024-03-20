@@ -6,6 +6,10 @@ from plt import hist
 from VP import DisplayPanel
 from  gl import GL_screen, GL_vbo
 
+import os
+import fnmatch
+
+
 from vispy import scene
 
 class MyFrame(wx.Frame):
@@ -17,6 +21,7 @@ class MyFrame(wx.Frame):
         
         # Sizers for image and controls
         self.root_sizer = wx.BoxSizer(wx.VERTICAL)
+        
         self.top_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.layer_sizer = wx.BoxSizer(wx.VERTICAL)
         self.control_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -31,7 +36,7 @@ class MyFrame(wx.Frame):
         
         self.root_sizer.Add(self.top_sizer, 1, wx.EXPAND)
         self.top_sizer.Add(self.image_panel, 1, wx.EXPAND)
-        self.top_sizer.Add(self.layer_sizer, 0)
+        self.top_sizer.Add(self.layer_sizer, 0, wx.EXPAND)
         self.root_sizer.Add(self.control_sizer, 0, wx.ALIGN_CENTER)
         
         # Bind events
@@ -44,26 +49,38 @@ class MyFrame(wx.Frame):
         self.check_scatter.Bind(wx.EVT_CHECKBOX, self.OnCheck_scatter)
         self.check_iso.Bind(wx.EVT_CHECKBOX, self.OnCheck_iso)
         self.drop_vectors.Bind(wx.EVT_CHOICE, self.OnVector)
+        
+        self.prev_button.Bind(wx.EVT_BUTTON, self.On_Button)
+        self.next_button.Bind(wx.EVT_BUTTON, self.On_Button)
         #self.Bind(wx.EVT_CLOSE, self.OnExit)
         
         # Setup window properties
         self.SetSizer(self.root_sizer)
-        #self.SetAutoLayout(True)
         self.Fit()
         self.SetMinSize(self.GetSize())
         self.Show()
 
     def InitControls(self):
-        self.layer_sizer.Add(wx.StaticText(self, label='Layers'), 0, wx.ALIGN_CENTER)
+        # Right panel
+        self.layer_sizer.Add(wx.StaticText(self, label='Layers'), 0, wx.ALIGN_LEFT)
         self.layer_list = wx.ListBox(self, choices=['Scatter', 'Scatter'], style=wx.LB_MULTIPLE)
-        self.layer_sizer.Add(self.layer_list, 0, wx.ALIGN_CENTER)
-        
+        self.layer_sizer.Add(self.layer_list, 0, wx.EXPAND)
         self.layer_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.add_button = wx.Button(self, label='+')
         self.remove_button = wx.Button(self, label='-')
         self.layer_button_sizer.Add(self.add_button, 0, wx.ALIGN_CENTER)
         self.layer_button_sizer.Add(self.remove_button, 0, wx.ALIGN_CENTER)
-        self.layer_sizer.Add(self.layer_button_sizer, wx.ALIGN_CENTER)
+        self.layer_sizer.Add(self.layer_button_sizer, wx.ALIGN_TOP)
+        
+        
+        self.layer_sizer.AddStretchSpacer(1)
+        self.layer_sizer.Add(wx.StaticText(self, label='Snapshot:'), 0, wx.ALIGN_LEFT)
+        self.layer_button_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        self.prev_button = wx.Button(self, label='<')
+        self.next_button = wx.Button(self, label='>')
+        self.layer_button_sizer2.Add(self.prev_button, 0, wx.ALIGN_CENTER)
+        self.layer_button_sizer2.Add(self.next_button, 0, wx.ALIGN_CENTER)
+        self.layer_sizer.Add(self.layer_button_sizer2, wx.ALIGN_TOP)
         
         # Available data list
         self.available_data = self.h5_data.keys
@@ -114,6 +131,15 @@ class MyFrame(wx.Frame):
         self.control_sizer.AddSpacer(10)
         self.control_sizer.Add(self.drop_vectors, 0, wx.ALIGN_CENTER)
 
+    def On_Button(self, event):
+        if event.GetEventObject().GetLabel() == '<':
+            self.current_snapshot -= 1
+        if event.GetEventObject().GetLabel() == '>':
+            self.current_snapshot += 1
+        path = os.path.join(self.current_dir, str(*self.snapshots[self.current_snapshot]))
+        self.h5_data = H5Data(path)
+        self.OnChoice(None)
+        
     def open_dialog(self, event=None):
         dialog = wx.FileDialog(self, 'Open Gadget snapshot:',
                                 style=wx.DD_DEFAULT_STYLE,
@@ -241,18 +267,29 @@ class FileDialog(wx.FileDialog):
                                 style=wx.DD_DEFAULT_STYLE,
                                 wildcard="HDF5 files (*.hdf5)|*.hdf5")
         #path='/Users/martynas/App/SPHerture/snap_050.hdf5'
-        #frame = MyFrame(path)
+        #frame = MyFrame(path=dialog.GetPath())
         #self.InitUI(frame)
         #return
         if dialog.ShowModal() == wx.ID_OK:
             try:
-                frame = MyFrame(path=dialog.GetPath())
+                frame = MyFrame(dialog.GetPath())
+                frame.current_snapshot = dialog.GetFilename()
+                frame.current_dir = dialog.GetDirectory()
+                self.get_all(frame)
                 self.InitUI(frame)
-            except:
-                dlg = wx.MessageDialog(self, "", "No bueno!", wx.OK | wx.ICON_WARNING)
+                
+            except Exception as error:
+                dlg = wx.MessageDialog(self, type(error).__name__, "No bueno!", wx.OK | wx.ICON_WARNING)
                 dlg.ShowModal()
                 dlg.Destroy()
+
         dialog.Destroy()
+
+    def get_all(self, frame):
+        filenames = next(os.walk(frame.current_dir), (None, None, []))[2]
+        template = frame.current_snapshot[0:-8]+'*'+frame.current_snapshot[-4:]
+        frame.snapshots = np.sort(fnmatch.filter(filenames, template))
+        frame.current_snapshot = np.where(frame.snapshots == frame.current_snapshot)[0]
     
     def InitUI(self, frame):
         # Create File, Tools menu items
