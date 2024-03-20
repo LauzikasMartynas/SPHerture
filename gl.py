@@ -5,7 +5,7 @@ from vispy.util.transforms import ortho, perspective, translate, rotate
 import matplotlib.pyplot as plt
 
 # full gl+ context is required for instanced rendering
-use(gl='gl+')
+#use(gl='gl+')
 
 VERT_SHADER = """
 //precision highp float;
@@ -29,7 +29,7 @@ void main (void) {
     v_fg_color  = vec4(a_color, 1.0);
     hsml = a_size / 2.0 * u_scaling;
     gl_Position =  u_projection * u_view * u_model * vec4(a_position, 1.0);
-    gl_PointSize = a_size;
+    gl_PointSize = a_size * u_scaling;
 }
 """
 
@@ -48,7 +48,7 @@ void main()
     else
         {
         float alpha = 7/(3.14*hsml*hsml) * (1-q)*(1-q)*(1-q)*(1-q) * (4*q+1);
-        gl_FragColor = vec4(v_fg_color.r, 0,  0, alpha);
+        gl_FragColor = vec4(v_fg_color.r, 0, 0, pow(alpha-alpha/hsml, 1));
         }
 }
 """
@@ -60,16 +60,17 @@ class GL_screen(app.Canvas):
         self.phi = 0
         
         # GL position on screen [-1...1]
-        v_position = data.pos
+        v_position = data.pos#[::1000,:]
         max = np.amax(v_position)
-        ratio = self.size[1]/max
+        self.cur_size = self.size[1]
+        ratio = self.cur_size/max
         v_position = (v_position/max - 0.5)*2
         
-        v_color = np.zeros_like(data.pos)
+        v_color = np.zeros_like(v_position)
         v_color[:,0] += 1
         
         # Object (2*hsml) size is in physical pixels
-        v_size = data.hsml[:, np.newaxis]
+        v_size = data.hsml[:, np.newaxis]#[::1000,:]
         v_size = v_size*2*ratio
 
         # Create shade rprogram
@@ -85,7 +86,7 @@ class GL_screen(app.Canvas):
         self.view = translate(self.translate, dtype=np.float32)
         self.model = np.eye(4, dtype=np.float32)
         self.range = 1.0
-        self.projection = ortho(-self.range, self.range, -self.range, self.range, 1.0, -1.0)
+        self.projection = ortho(-self.range, self.range, -self.range, self.range, 10.0, -10.0)
         #print('Projection:', self.projection)
         self.program['u_projection'] = self.projection
         #print('Model:', self.model)
@@ -95,7 +96,7 @@ class GL_screen(app.Canvas):
         self.scaling = 1
         self.program['u_scaling'] = self.scaling
         
-        gloo.set_state(clear_color='black', blend=True, preset='additive')
+        gloo.set_state(clear_color='black', preset='additive')
         gloo.set_viewport(0, 0, *self.size)
         self.show()
         
@@ -104,17 +105,21 @@ class GL_screen(app.Canvas):
         self.program.draw('points')
 
     def on_resize(self, event):
-        #gloo.set_viewport(0, 0, *self.size)
-        self.projection = ortho(-self.range, self.range, -self.range, self.range, 1.0, -1.0)
+        ratio = self.size[1]/self.cur_size
+        gloo.set_viewport(0, 0, *self.size)
+        self.projection = ortho(-self.range, self.range, -self.range, self.range, 10.0, -10.0)
         self.program['u_projection'] = self.projection
+        self.scaling *= ratio
+        self.program['u_scaling'] = self.scaling/self.range
+        self.cur_size = self.size[1]
+        self.update()
 
     def on_mouse_wheel(self, event):
-        self.range = self.range - self.range * event.delta[1]/100
+        self.range = self.range - self.range * event.delta[1]/50
         self.range = max(0.1, self.range)
         self.range = min(1, self.range)
-        self.projection = ortho(-self.range, self.range, -self.range, self.range, 1.0, -1.0)
+        self.projection = ortho(-self.range, self.range, -self.range, self.range, 10.0, -10.0)
         self.program['u_projection'] = self.projection
-        print(self.scaling/self.range)
         self.program['u_scaling'] = self.scaling/self.range
         self.update()
 
@@ -140,9 +145,8 @@ class GL_screen(app.Canvas):
 
 class GL_vbo(app.Canvas):
     def __init__(self, data):
-        app.Canvas.__init__(self, keys='interactive', size=(800,800))
-        self.data = data.h5_data
-        self.parent = data
+        app.Canvas.__init__(self, show=False, keys='interactive', size=(800,800))
+ 
         ps = self.pixel_scale
         if ps != 1.0:
             print("Pixel scale =", ps)
@@ -151,16 +155,16 @@ class GL_vbo(app.Canvas):
         self.im = None
         
         # GL position on screen [-1...1]
-        v_position = self.data.pos
+        v_position = data.pos
         max = np.amax(v_position)
         ratio = self.physical_size[1]/max
         v_position = (v_position/max - 0.5)*2
         
-        v_color = np.zeros_like(self.data.pos)
+        v_color = np.zeros_like(data.pos)
         v_color[:,0] += 1
         
         # Object (2*hsml) size is in physical pixels
-        v_size = self.data.hsml[:, np.newaxis]
+        v_size = data.hsml[:, np.newaxis]
         v_size = v_size*2*ratio
         
         # Create shade rprogram
@@ -176,51 +180,43 @@ class GL_vbo(app.Canvas):
         self.view = translate(self.translate, dtype=np.float32)
         self.model = np.eye(4, dtype=np.float32)
         self.range = 1.0
-        self.projection = ortho(-self.range, self.range, -self.range, self.range, 1.0, -1.0)
-        #print('Projection:', self.projection)
+        self.projection = ortho(-self.range, self.range, -self.range, self.range, 10.0, -10.0)
         self.program['u_projection'] = self.projection
-        #print('Model:', self.model)
         self.program['u_model'] = self.model
-        #print('View:', self.view)
         self.program['u_view'] = self.view
         self.scaling = 1
         self.program['u_scaling'] = self.scaling
         self.program['u_pixel_scale'] = ps
         
         gloo.set_state(clear_color='black', blend=True, preset='additive')
-        gloo.set_viewport(0, 0, *self.size)
-        self.show()
         
         # Offscreen rendering (returns float)
         self._rendertex = gloo.Texture2D(shape=self.physical_size[::-1]+(4,), internalformat='rgba32f')
         self._fbo = gloo.FrameBuffer(self._rendertex, gloo.RenderBuffer(self.physical_size[::-1]))
-        self.update()
-
+        self.on_update(None)
         
-    def on_draw(self, event):
-        gloo.clear(color=True, depth=False)
-        self.program.draw('points')
-        with self._fbo:
-            gloo.clear()
-            #gloo.set_vieport(0,0,*self.size)
+    def on_update(self, event):
+       with self._fbo:
+            gloo.clear('black')
+            gloo.set_viewport(0,0,*self.size)
             self.program.draw('points')
             self.im = gloo.util.read_pixels((0,0,self.physical_size[0], self.physical_size[1]), out_type='float')
-            imager = np.copy(self.im[:,:,0])
-            imager[imager<=0] = 1e-5
-            plt.imshow(np.log10(imager), vmin=-1, vmax=2)
-            plt.show()
-       
         
     def on_resize(self, event):
-        gloo.set_viewport(0, 0, *self.physical_size)
-        self.projection = ortho(-self.range, self.range, -self.range, self.range, 1.0, -1.0)
+        ratio = self.size[1]/self.cur_size
+        gloo.set_viewport(0, 0, *self.size)
+        self.projection = ortho(-self.range, self.range, -self.range, self.range, 10.0, -10.0)
         self.program['u_projection'] = self.projection
+        self.scaling *= ratio
+        self.program['u_scaling'] = self.scaling/self.range
+        self.cur_size = self.size[1]
+        self.update()
 
     def on_mouse_wheel(self, event):
-        self.range = self.range - self.range * event.delta[1]/100
+        self.range = self.range - self.range * event.delta[1]/50
         self.range = max(0.1, self.range)
         self.range = min(1, self.range)
-        self.projection = ortho(-self.range, self.range, -self.range, self.range, 1.0, -1.0)
+        self.projection = ortho(-self.range, self.range, -self.range, self.range, 10.0, -10.0)
         self.program['u_projection'] = self.projection
         self.program['u_scaling'] = self.scaling/self.range
         self.update()

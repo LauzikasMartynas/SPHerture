@@ -139,14 +139,10 @@ class MyFrame(wx.Frame):
         GL_screen(data = self.h5_data)
         
     def on_gl_vbo(self, evt):
-        self.image_panel.draw_image()
+        self.image_panel.draw_image_vbo()
         #print(vbo.im)
         #scene.visuals.Image(vbo.im, parent=self.image_panel.canvas)
         
-    def on_VPjulia(self, evt):
-        frame = VPJulia(self)
-        frame.Show()
-
     def OnExit(self, evt=None):
         #self.image_panel.Destroy()
         self.Destroy()

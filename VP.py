@@ -5,7 +5,8 @@ from vispy.visuals.transforms import STTransform
 from vispy.util.transforms import ortho, perspective, translate, rotate
 from itertools import cycle
 from vispy.gloo import gl
-from gl import GL_vbo, VERT_SHADER, FRAG_SHADER
+from gl import GL_vbo, GL_screen, VERT_SHADER, FRAG_SHADER
+import matplotlib.pyplot as plt
 
 class DisplayPanel(wx.Panel):
     def __init__(self, parent):
@@ -168,25 +169,40 @@ class DisplayPanel(wx.Panel):
             self.canvas.update()
         else:
             self.canvas.update()
-            
-        #self.canvas.vol.opacity = 0.25
-        self.canvas.vol.visible = True
-
+  
     def draw_image(self):
-        vbo = GL_vbo(data = self.parent)
+        vbo = GL_vbo(data = self.parent.h5_data)
         print(self.canvas.scene.describe_tree())
-        #imager = vbo.im[:,:,0]
+        #imager = np.copy(vbo.im[:,:,0])
         #imager[imager<=0] = 1e-5
         #plt.imshow(np.log10(imager), vmin=-1, vmax=2)
         #plt.show()
 
-        #self.canvas.unfreeze()
-        #scene.visuals.Image(data=vbo.im, parent=self.canvas.view.scene)
-        #self.canvas.view.camera = scene.PanZoomCamera(aspect=1)
+        self.canvas.unfreeze()
+        scene.visuals.Image(data=vbo.im, parent=self.canvas.view.scene, cmap=self.get_cmap('Viridis'))
+        self.canvas.view.camera = scene.PanZoomCamera(aspect=1)
         # flip y-axis to have correct aligment
-        #self.canvas.view.camera.flip = (0, 1, 0)
-        #self.canvas.view.camera.set_range()
-        #self.canvas.view.camera.zoom(0.1, (250, 200))
+        self.canvas.view.camera.flip = (0, 1, 0)
+        self.canvas.view.camera.set_range()
+        self.canvas.update()
+            
+        #self.canvas.vol.opacity = 0.25
+        self.canvas.vol.visible = True
+
+    def draw_image_vbo(self):
+        vbo = GL_vbo(data = self.parent.h5_data)
+        #print(self.canvas.scene.describe_tree())
+        #imager = np.copy(vbo.im[:,:,0])
+        #imager[imager<=0] = 1e-5
+        #plt.imshow(np.log10(imager), vmin=-1, vmax=2)
+        #plt.show()
+
+        self.canvas.unfreeze()
+        scene.visuals.Image(data=vbo.im, parent=self.canvas.view.scene, cmap=self.get_cmap('Viridis'))
+        self.canvas.view.camera = scene.PanZoomCamera(aspect=1)
+        # flip y-axis to have correct aligment
+        self.canvas.view.camera.flip = (0, 1, 0)
+        self.canvas.view.camera.set_range()
         self.canvas.update()
 
     # Resize canvas with window resize
