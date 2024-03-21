@@ -1,6 +1,6 @@
 import wx
 import numpy as np
-from vispy import app, scene, color, gloo, use, visuals
+from vispy import app, scene, color, gloo, use, visuals, util
 from vispy.visuals.transforms import STTransform
 from vispy.util.transforms import ortho, perspective, translate, rotate
 from itertools import cycle
@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 class DisplayPanel(wx.Panel):
     def __init__(self, parent):
         super().__init__(parent)
+        
+        print(util.dpi.get_dpi())
         self.parent = parent
         self.old_dataset = ''
         
@@ -191,10 +193,10 @@ class DisplayPanel(wx.Panel):
     def draw_image_vbo(self):
         vbo = GL_vbo(data = self.parent.h5_data)
         #print(self.canvas.scene.describe_tree())
-        #imager = np.copy(vbo.im[:,:,0])
-        #imager[imager<=0] = 1e-5
-        #plt.imshow(np.log10(imager), vmin=-1, vmax=2)
-        #plt.show()
+        imager = np.copy(vbo.im[:,:,3])
+        imager[imager<0] = 1e-5
+        plt.imshow(np.log10(imager), vmin=0, vmax=2)
+        plt.show()
 
         self.canvas.unfreeze()
         scene.visuals.Image(data=np.log10(vbo.im[:,:,0]), parent=self.canvas.view.scene, cmap=self.get_cmap('Viridis'))

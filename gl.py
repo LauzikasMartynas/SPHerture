@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 #use(gl='gl+')
 
 VERT_SHADER = """
-//precision highp float;
+precision highp float;
 
 // Program inputs
 attribute vec3  a_position;
@@ -35,7 +35,7 @@ void main (void) {
 
 FRAG_SHADER = """
 //#version 120
-//precision highp float;
+precision highp float;
 
 varying vec4 v_fg_color;
 varying float hsml;
@@ -48,7 +48,7 @@ void main()
     else
         {
         float alpha = 7/(3.14*hsml*hsml) * (1-q)*(1-q)*(1-q)*(1-q) * (4*q+1);
-        gl_FragColor = vec4(v_fg_color.r, 0, 0, pow(alpha-alpha/hsml, 1));
+        gl_FragColor = vec4(v_fg_color.r, 0, 0, pow(alpha, 1));
         }
 }
 """

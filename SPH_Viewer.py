@@ -1,6 +1,7 @@
 import wx
 import numpy as np
 
+from slider import RangeSlider
 from hdf5 import H5Data
 from plt import hist
 from VP import DisplayPanel
@@ -8,6 +9,7 @@ from  gl import GL_screen, GL_vbo
 
 import os
 import fnmatch
+
 
 
 from vispy import scene
@@ -38,8 +40,8 @@ class MyFrame(wx.Frame):
         
         self.root_sizer.Add(self.top_sizer, 1, wx.EXPAND)
         self.top_sizer.Add(self.image_panel, 1, wx.EXPAND)
-        self.top_sizer.Add(self.layer_sizer, 0, wx.EXPAND)
-        self.root_sizer.Add(self.control_sizer, 0, wx.ALIGN_CENTER)
+        self.top_sizer.Add(self.layer_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        self.root_sizer.Add(self.control_sizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
         
         # Bind events
         self.slider.Bind(wx.EVT_SCROLL, self.OnScroll)
@@ -54,12 +56,10 @@ class MyFrame(wx.Frame):
         
         self.prev_button.Bind(wx.EVT_BUTTON, self.On_Button)
         self.next_button.Bind(wx.EVT_BUTTON, self.On_Button)
-        #self.Bind(wx.EVT_CLOSE, self.OnExit)
         
-        # Setup window properties
-        self.SetSizer(self.root_sizer)
-        self.Fit()
-        self.SetMinSize(self.GetSize())
+       # Setup window properties
+        #self.root_sizer.SetSizeHints(self)
+        self.SetSizerAndFit(self.root_sizer)
         self.Show()
 
     def InitControls(self):
@@ -76,6 +76,15 @@ class MyFrame(wx.Frame):
         
         
         self.layer_sizer.AddStretchSpacer(1)
+        
+        self.r_slider = RangeSlider(parent=self, lowValue=0, highValue=100, minValue=0, maxValue=100, size=(150, 26))
+        self.r_slider.Bind(wx.EVT_SLIDER, self.rangeslider_changed)
+        self.layer_sizer.Add(self.r_slider, 0, flag = wx.ALIGN_CENTER)
+        self.r_label = wx.StaticText(self)
+        self.r_label.SetLabel('Min: {:.0f}, Max: {:.0f}'.format(*self.r_slider.GetValues()))
+
+        self.layer_sizer.Add(self.r_label, 0, flag=wx.ALIGN_LEFT)
+        
         self.layer_sizer.Add(wx.StaticText(self, label='Snapshot:'), 0, wx.ALIGN_LEFT)
         self.layer_button_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
         self.prev_button = wx.Button(self, label='<')
@@ -133,6 +142,12 @@ class MyFrame(wx.Frame):
         self.control_sizer.AddSpacer(10)
         self.control_sizer.Add(self.drop_vectors, 0, wx.ALIGN_CENTER)
 
+    def rangeslider_changed(self, evt):
+        obj = evt.GetEventObject()
+        lv, hv = obj.GetValues()
+        self.r_label.SetLabel('Min: {:.0f}, Max: {:.0f}'.format(lv, hv))
+        
+
     def On_Button(self, event):
         if event.GetEventObject().GetLabel() == '<':
             self.current_snapshot -= 1
@@ -144,18 +159,7 @@ class MyFrame(wx.Frame):
         self.OnChoice(None)
         
     def open_dialog(self, event=None):
-        dialog = wx.FileDialog(self, 'Open Gadget snapshot:',
-                                style=wx.DD_DEFAULT_STYLE,
-                                wildcard="HDF5 files (*.hdf5)|*.hdf5")
-        if dialog.ShowModal() == wx.ID_OK:
-            try:
-                self.h5_data = H5Data(dialog.GetPath())
-            except:
-                dlg = wx.MessageDialog(self, "", "No bueno!", wx.OK | wx.ICON_WARNING)
-                dlg.ShowModal()
-                dlg.Destroy()
-                self.open_dialog()
-        dialog.Destroy()
+        FileDialog(self)
     
     def on_open_snapshot(self, event=None):
         self.open_dialog()
@@ -264,7 +268,9 @@ class MyFrame(wx.Frame):
     def InitUI(self):
         # Create File, Tools menu items
         file_menu = wx.Menu()
-        file_menu_open_item = file_menu.Append(wx.ID_ANY, 'Open snapshot')
+        file_menu_open_item = file_menu.Append(wx.ID_OPEN, '&Open snapshot')
+        file_menu.AppendSeparator()
+        file_menu_exit = file_menu.Append(wx.ID_EXIT, '&Quit')
         tools_menu = wx.Menu()
         tools_menu_hist_item = tools_menu.Append(wx.ID_ANY, 'Histogram')
         tools_menu_gl_item = tools_menu.Append(wx.ID_ANY, 'Gl to screen')
@@ -274,14 +280,18 @@ class MyFrame(wx.Frame):
         menu_bar = wx.MenuBar()
         menu_bar.Append(file_menu, '&File')
         menu_bar.Append(tools_menu, '&Tools')
-        
-        # Add events
-        self.Bind(wx.EVT_MENU, self.on_open_snapshot, source=file_menu_open_item)
-        self.Bind(wx.EVT_MENU, self.on_hist, source=tools_menu_hist_item)
-        self.Bind(wx.EVT_MENU, self.on_gl, source=tools_menu_gl_item)
-        self.Bind(wx.EVT_MENU, self.on_gl_vbo, source=tools_menu_gl_vbo_item)
 
         self.SetMenuBar(menu_bar)
+        
+        # Add events
+        self.Bind(wx.EVT_MENU, self.on_open_snapshot, file_menu_open_item)
+        self.Bind(wx.EVT_MENU, self.OnExit, file_menu_exit)
+        self.Bind(wx.EVT_MENU, self.on_hist, tools_menu_hist_item)
+        self.Bind(wx.EVT_MENU, self.on_gl, tools_menu_gl_item)
+        self.Bind(wx.EVT_MENU, self.on_gl_vbo, tools_menu_gl_vbo_item)
+        
+        a_tbl = wx.AcceleratorTable([(wx.ACCEL_CTRL,  ord('Q'), wx.ID_EXIT)])
+        self.SetAcceleratorTable(a_tbl)
 
 class FileDialog(wx.FileDialog):
     def __init__(self, parent):
