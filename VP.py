@@ -12,7 +12,7 @@ class DisplayPanel(wx.Panel):
     def __init__(self, parent):
         super().__init__(parent)
         
-        print(util.dpi.get_dpi())
+        #print(util.dpi.get_dpi())
         self.parent = parent
         self.old_dataset = ''
         
@@ -170,7 +170,11 @@ class DisplayPanel(wx.Panel):
             self.canvas.update()
         else:
             self.canvas.update()
-  
+    
+        #self.canvas.vol.opacity = 0.25
+        self.canvas.vol.visible = True
+    
+    
     def draw_image(self):
         vbo = GL_vbo(data = self.parent.h5_data)
         print(self.canvas.scene.describe_tree())
@@ -180,31 +184,30 @@ class DisplayPanel(wx.Panel):
         #plt.show()
 
         self.canvas.unfreeze()
-        scene.visuals.Image(data=vbo.im, parent=self.canvas.view.scene, cmap=self.get_cmap('Viridis'))
+        #scene.visuals.Image(data=vbo.im, parent=self.canvas.view.scene, cmap=self.get_cmap('Viridis'))
         self.canvas.view.camera = scene.PanZoomCamera(aspect=1)
         # flip y-axis to have correct aligment
         self.canvas.view.camera.flip = (0, 1, 0)
         self.canvas.view.camera.set_range()
         self.canvas.update()
-            
-        #self.canvas.vol.opacity = 0.25
-        self.canvas.vol.visible = True
 
     def draw_image_vbo(self):
         vbo = GL_vbo(data = self.parent.h5_data)
         #print(self.canvas.scene.describe_tree())
-        imager = np.copy(vbo.im[:,:,3])
-        imager[imager<0] = 1e-5
-        plt.imshow(np.log10(imager), vmin=0, vmax=2)
+        imager = np.copy(vbo.im)
+        #imager[imager<0] = 1e-5
+        plt.figure()
+        plt.imshow(np.log10(imager[:,:,0]), vmin=-1, vmax=4, cmap='viridis')
         plt.show()
 
-        self.canvas.unfreeze()
-        scene.visuals.Image(data=np.log10(vbo.im[:,:,0]), parent=self.canvas.view.scene, cmap=self.get_cmap('Viridis'))
-        self.canvas.view.camera = scene.PanZoomCamera(aspect=1)
+
+        #self.canvas.unfreeze()
+        #scene.visuals.Image(data=np.log10(vbo.im[:,:,0]), parent=self.canvas.view.scene, cmap=self.get_cmap('Viridis'))
+        #self.canvas.view.camera = scene.PanZoomCamera(aspect=1)
         # flip y-axis to have correct aligment
-        self.canvas.view.camera.flip = (0, 1, 0)
-        self.canvas.view.camera.set_range()
-        self.canvas.update()
+        #self.canvas.view.camera.flip = (0, 1, 0)
+        #self.canvas.view.camera.set_range()
+        #self.canvas.update()
 
     # Resize canvas with window resize
     def on_size(self, event):
@@ -288,7 +291,7 @@ class MyCanvas(scene.SceneCanvas):
         self.make_xyz()
         
         # Show fps in console
-        #self.measure_fps()
+        self.measure_fps()
         
         self.show()
 

@@ -15,21 +15,23 @@ attribute vec3  a_position;
 attribute vec3  a_color;
 attribute float a_size;
 
-// Global variables
+// Global shared variables
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
-uniform float u_pixel_scale;
-uniform float u_scaling;
+uniform float u_pixel_scale; // 1 for most OS
+uniform float u_scaling; // Enlarges the hsml on "zoom in"
 
+// Local variables
 varying vec4 v_fg_color;
 varying float hsml;
+
 // Main
 void main (void) {
     v_fg_color  = vec4(a_color, 1.0);
-    hsml = a_size / 2.0 * u_scaling;
+    hsml = a_size / 2.0 * u_scaling * u_pixel_scale;
     gl_Position =  u_projection * u_view * u_model * vec4(a_position, 1.0);
-    gl_PointSize = a_size * u_scaling;
+    gl_PointSize = a_size * u_scaling * u_pixel_scale;
 }
 """
 
@@ -47,15 +49,16 @@ void main()
         discard;
     else
         {
-        float alpha = 7/(3.14*hsml*hsml) * (1-q)*(1-q)*(1-q)*(1-q) * (4*q+1);
-        gl_FragColor = vec4(v_fg_color.r, 0, 0, pow(alpha, 1));
+        float alpha = 7/(3.14159*hsml*hsml) * (1-q)*(1-q)*(1-q)*(1-q) * (4*q+1);
+        gl_FragColor = vec4(v_fg_color.r, 0, 0, alpha);
         }
 }
 """
 
 class GL_screen(app.Canvas):
     def __init__(self, data):
-        app.Canvas.__init__(self, keys='interactive', size=(500,500))
+        app.Canvas.__init__(self, keys='interactive', size=(800,800))
+        ps = self.pixel_scale
         self.theta = 0
         self.phi = 0
         
@@ -89,12 +92,11 @@ class GL_screen(app.Canvas):
         self.projection = ortho(-self.range, self.range, -self.range, self.range, 10.0, -10.0)
         #print('Projection:', self.projection)
         self.program['u_projection'] = self.projection
-        #print('Model:', self.model)
         self.program['u_model'] = self.model
-        #print('View:', self.view)
         self.program['u_view'] = self.view
         self.scaling = 1
         self.program['u_scaling'] = self.scaling
+        self.program['u_pixel_scale'] = ps
         
         gloo.set_state(clear_color='black', preset='additive')
         gloo.set_viewport(0, 0, *self.size)
@@ -145,11 +147,9 @@ class GL_screen(app.Canvas):
 
 class GL_vbo(app.Canvas):
     def __init__(self, data):
-        app.Canvas.__init__(self, show=False, size=(800,800))
+        app.Canvas.__init__(self, show=False, size=(1200,1200))
  
         ps = self.pixel_scale
-        if ps != 1.0:
-            print("Pixel scale =", ps)
         self.theta = 0
         self.phi = 0
         self.im = None
@@ -166,7 +166,6 @@ class GL_vbo(app.Canvas):
         # Object (2*hsml) size is in physical pixels
         v_size = data.hsml[:, np.newaxis]
         v_size = v_size*2*ratio
-        
         # Create shade rprogram
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         
@@ -193,9 +192,9 @@ class GL_vbo(app.Canvas):
         # Offscreen rendering (returns float)
         self._rendertex = gloo.Texture2D(shape=self.physical_size[::-1]+(4,), internalformat='rgba32f')
         self._fbo = gloo.FrameBuffer(self._rendertex, gloo.RenderBuffer(self.physical_size[::-1]))
-        self.on_update(None)
+        self.on_update()
         
-    def on_update(self, event):
+    def on_update(self):
        with self._fbo:
             gloo.clear('black')
             gloo.set_viewport(0,0,*self.size)
