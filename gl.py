@@ -217,4 +217,4 @@ class GL_vbo(app.Canvas):
             gloo.clear('black')
             gloo.set_viewport(0,0,*self.size)
             self.program.draw('points')
-            self.im = gloo.util.read_pixels((0,0,self.physical_size[0], self.physical_size[1]), out_type='float')
+            self.im = gloo.util.read_pixels((0,0,self.size[0], self.size[1]), out_type='float')

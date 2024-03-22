@@ -20,11 +20,11 @@ class MyFrame(wx.Frame):
         self.InitUI()
         
         self.path = None
-        FileDialog(self)
-            
-        # Should close, but does not?
+        self.file_dialog = FileDialog(self)
+
+        # Cant close with Destroy thus using Exit
         if self.path is None:
-              self.Destroy()
+            wx.Exit()
         
         self.h5_data = H5Data(self.path)
         
@@ -394,6 +394,7 @@ if __name__ == '__main__':
     if 'Win' in wx.GetOsDescription():
         frame.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_MENU))
         frame.Refresh()
+    
     # Uncomment for debug
     #import wx.lib.inspection
     #wx.lib.inspection.InspectionTool().Show()

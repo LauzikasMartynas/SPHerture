@@ -190,7 +190,9 @@ class DisplayPanel(wx.Panel):
         self.canvas.vol.visible = True
     
     def draw_image_vbo(self):
-        vbo = GL_vbo(app='wx', parent=self, show=True, size=(800,800))
+        ps = self.canvas2.pixel_scale
+        size = size=(1200*ps,1200*ps)
+        vbo = GL_vbo(app='wx', parent=self, show=True, size=size)
         #print(self.canvas.scene.describe_tree())
         imager = np.copy(vbo.im)
         plt.figure()
