@@ -62,6 +62,7 @@ class GL_screen(app.Canvas):
         ps = self.pixel_scale
         self.theta = 0
         self.phi = 0
+        self.aspect_ratio = self.size[0]/self.size[1]
         
         # GL position on screen [-1...1]
         v_position = data.pos#[::1000,:]
@@ -90,7 +91,7 @@ class GL_screen(app.Canvas):
         self.view = translate(self.translate, dtype=np.float32)
         self.model = np.eye(4, dtype=np.float32)
         self.range = 1.0
-        self.projection = ortho(-self.range, self.range, -self.range, self.range, 10.0, -10.0)
+        self.projection = ortho(-self.range, self.range, -self.range/self.aspect_ratio, self.range/self.aspect_ratio, 10.0, -10.0)
         #print('Projection:', self.projection)
         self.program['u_projection'] = self.projection
         self.program['u_model'] = self.model
@@ -109,9 +110,10 @@ class GL_screen(app.Canvas):
         self.program.draw('points')
 
     def on_resize(self, event):
+        self.aspect_ratio = self.size[0]/self.size[1]
         ratio = self.size[1]/self.cur_size
         gloo.set_viewport(0, 0, *self.size)
-        self.projection = ortho(-self.range, self.range, -self.range, self.range, 10.0, -10.0)
+        self.projection = ortho(-self.range, self.range, -self.range/self.aspect_ratio, self.range/self.aspect_ratio, 10.0, -10.0)
         self.program['u_projection'] = self.projection
         self.scaling *= ratio
         self.program['u_scaling'] = self.scaling/self.range
@@ -122,7 +124,7 @@ class GL_screen(app.Canvas):
         self.range = self.range - self.range * event.delta[1]/50
         self.range = max(0.1, self.range)
         self.range = min(1, self.range)
-        self.projection = ortho(-self.range, self.range, -self.range, self.range, 10.0, -10.0)
+        self.projection = ortho(-self.range, self.range, -self.range/self.aspect_ratio, self.range/self.aspect_ratio, 10.0, -10.0)
         self.program['u_projection'] = self.projection
         self.program['u_scaling'] = self.scaling/self.range
         self.update()

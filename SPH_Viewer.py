@@ -67,6 +67,9 @@ class MyFrame(wx.Frame):
         self.add_button.Bind(wx.EVT_BUTTON, self.On_Add_Button)
         self.remove_button.Bind(wx.EVT_BUTTON, self.On_Remove_Button)
         
+        # Remove infuture
+        self.draw_gl = False
+        
        # Setup window properties
         #self.root_sizer.SetSizeHints(self)
         self.SetSizerAndFit(self.root_sizer)
@@ -230,12 +233,12 @@ class MyFrame(wx.Frame):
         hist(self)
     
     def on_gl(self, evt):
-        GL_screen(parent=self.image_panel, keys='interactive', size=(800,800))
+        self.image_panel.canvas.show(self.draw_gl)
+        self.draw_gl = not self.draw_gl
+        self.image_panel.canvas2.show(self.draw_gl)
         
     def on_gl_vbo(self, evt):
         self.image_panel.draw_image_vbo()
-        #print(vbo.im)
-        #scene.visuals.Image(vbo.im, parent=self.image_panel.canvas)
         
     def OnExit(self, evt=None):
         #self.image_panel.Destroy()
@@ -361,12 +364,12 @@ class FileDialog(wx.FileDialog):
         dialog = wx.FileDialog(self, 'Open Gadget snapshot:',
                                 style=wx.DD_DEFAULT_STYLE,
                                 wildcard="HDF5 files (*.hdf5)|*.hdf5")
-        path='/Users/martynas/App/SPHerture/snap_050.hdf5'
-        self.parent.path = path
-        self.parent.current_snapshot = dialog.GetFilename()
-        self.parent.current_dir = dialog.GetDirectory()
-        self.get_all()
-        return
+        #path='/Users/martynas/App/SPHerture/snap_050.hdf5'
+        #self.parent.path = path
+        #self.parent.current_snapshot = dialog.GetFilename()
+        #self.parent.current_dir = dialog.GetDirectory()
+        #self.get_all()
+        #return
         if dialog.ShowModal() == wx.ID_OK:
             try:
                 self.parent.path = dialog.GetPath()

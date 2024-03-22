@@ -7,6 +7,7 @@ from itertools import cycle
 from vispy.gloo import gl
 from gl import GL_vbo, GL_screen, VERT_SHADER, FRAG_SHADER
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 
 class DisplayPanel(wx.Panel):
     def __init__(self, parent):
@@ -19,13 +20,16 @@ class DisplayPanel(wx.Panel):
         self.Bind(wx.EVT_SIZE, self.on_size)
         self.Bind(wx.EVT_CLOSE, self.on_exit)
         
-        self.canvas = MyCanvas(app='wx', parent=self, keys='interactive')
+        self.canvas = MyCanvas(app='wx', parent=self)
         self.update()
         self.canvas.view.camera.set_range()
         #self.canvas.view.camera.set_default_state()
 
+        self.canvas2 = GL_screen(app='wx', parent=self)# shared=self.image_panel.canvas)
+
     def on_exit(self, evt):
         self.canvas.close()
+        self.canvas2.close()
         self.Destroy()
 
     def update(self):
@@ -185,33 +189,14 @@ class DisplayPanel(wx.Panel):
         #self.canvas.vol.opacity = 0.25
         self.canvas.vol.visible = True
     
-    
-    def draw_image(self):
-        vbo = GL_vbo(data = self.parent.h5_data)
-        print(self.canvas.scene.describe_tree())
-        #imager = np.copy(vbo.im[:,:,0])
-        #imager[imager<=0] = 1e-5
-        #plt.imshow(np.log10(imager), vmin=-1, vmax=2)
-        #plt.show()
-
-        self.canvas.unfreeze()
-        #scene.visuals.Image(data=vbo.im, parent=self.canvas.view.scene, cmap=self.get_cmap('Viridis'))
-        self.canvas.view.camera = scene.PanZoomCamera(aspect=1)
-        # flip y-axis to have correct aligment
-        self.canvas.view.camera.flip = (0, 1, 0)
-        self.canvas.view.camera.set_range()
-        self.canvas.update()
-
     def draw_image_vbo(self):
-        vbo = GL_vbo(parent=self, show=True, size=(800,800))
+        vbo = GL_vbo(app='wx', parent=self, show=True, size=(800,800))
         #print(self.canvas.scene.describe_tree())
         imager = np.copy(vbo.im)
-        print(imager)
-        #imager[imager<0] = 1e-5
         plt.figure()
-        plt.imshow(np.log10(imager[:,:,0]), vmin=-1, vmax=4, cmap='viridis')
+        
+        plt.imshow(imager[:,:,0], cmap='viridis', norm=LogNorm())
         plt.show()
-
 
         #self.canvas.unfreeze()
         #scene.visuals.Image(data=np.log10(vbo.im[:,:,0]), parent=self.canvas.view.scene, cmap=self.get_cmap('Viridis'))
@@ -225,6 +210,7 @@ class DisplayPanel(wx.Panel):
     def on_size(self, event):
         w, h = self.GetSize()
         self.canvas.size = (w,h)
+        self.canvas2.size = (w,h)
         self.Refresh()
 
     def on_show(self, event):
