@@ -1,5 +1,5 @@
 # SPHerture
-Simple Gadget3 HDF5 snapshot viewer.
+Simple Gadget3 HDF5 snapshot viewer. Sample file snap_040.hdf5 included.
 
 <p align="center" float="left">
   <img src="figures/UI.png" alt="User Interface (macOS)" style="height:440px"/>
