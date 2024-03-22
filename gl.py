@@ -49,15 +49,16 @@ void main()
         discard;
     else
         {
-        float alpha = 7/(3.14159*hsml*hsml) * (1-q)*(1-q)*(1-q)*(1-q) * (4*q+1);
+        float alpha = 7 / (3.14159*hsml*hsml) * (1-q)*(1-q)*(1-q)*(1-q) * (4*q+1);
         gl_FragColor = vec4(v_fg_color.r, 0, 0, alpha);
         }
 }
 """
 
 class GL_screen(app.Canvas):
-    def __init__(self, data):
-        app.Canvas.__init__(self, keys='interactive', size=(800,800))
+    def __init__(self, *args, **kwargs):
+        app.Canvas.__init__(self, *args, **kwargs)
+        data=kwargs['parent'].parent.h5_data
         ps = self.pixel_scale
         self.theta = 0
         self.phi = 0
@@ -98,6 +99,7 @@ class GL_screen(app.Canvas):
         self.program['u_scaling'] = self.scaling
         self.program['u_pixel_scale'] = ps
         
+        self.set_current()
         gloo.set_state(clear_color='black', preset='additive')
         gloo.set_viewport(0, 0, *self.size)
         self.show()
@@ -146,9 +148,9 @@ class GL_screen(app.Canvas):
             self.update()
 
 class GL_vbo(app.Canvas):
-    def __init__(self, data):
-        app.Canvas.__init__(self, show=False, size=(1200,1200))
- 
+    def __init__(self, *args, **kwargs):
+        app.Canvas.__init__(self, *args, **kwargs)
+        data=kwargs['parent'].parent.h5_data
         ps = self.pixel_scale
         self.theta = 0
         self.phi = 0
@@ -187,12 +189,27 @@ class GL_vbo(app.Canvas):
         self.program['u_scaling'] = self.scaling
         self.program['u_pixel_scale'] = ps
         
+        self.set_current()
         gloo.set_state(clear_color='black', blend=True, preset='additive')
         
         # Offscreen rendering (returns float)
         self._rendertex = gloo.Texture2D(shape=self.physical_size[::-1]+(4,), internalformat='rgba32f')
         self._fbo = gloo.FrameBuffer(self._rendertex, gloo.RenderBuffer(self.physical_size[::-1]))
+        
+        # Var 2
+        #self.set_current()
+        #size = self.physical_size
+        #self._fbo = gloo.FrameBuffer(color=gloo.RenderBuffer(size[::-1]),
+        #                  depth=gloo.RenderBuffer(size[::-1]))
+        #try:
+        #    self._fbo.activate()
+        #    self.events.draw()
+        #    self.im2 = self._fbo.read()
+        #finally:
+        #    self._fbo.deactivate()
+        
         self.on_update()
+        self.show(False)
         
     def on_update(self):
        with self._fbo:

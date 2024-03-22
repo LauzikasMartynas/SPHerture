@@ -11,7 +11,8 @@ class hist(wx.Frame):
         super().__init__(parent)
         
         self.pos = parent.h5_data.get_pos()
-        self.rho = parent.h5_data.dataset_data
+        self.name = parent.h5_data.dataset_name
+        self.data = parent.h5_data.dataset_data
         self.CreateCtrls()
         self.DoLayout()
         self.Draw()
@@ -34,4 +35,6 @@ class hist(wx.Frame):
         self.Fit()
 
     def Draw(self):
-        self.axes.hist(self.rho, bins=100, log=True, fill=False)
+        self.axes.hist(self.data, bins=100, log=True, fill=False)
+        self.axes.set_xlabel(self.name)
+        self.axes.set_ylabel('Count')

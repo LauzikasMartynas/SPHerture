@@ -64,6 +64,8 @@ class MyFrame(wx.Frame):
         self.spin_max.Bind(EVT_FLOATSPIN, self.OnSpin)
         self.prev_button.Bind(wx.EVT_BUTTON, self.On_Button)
         self.next_button.Bind(wx.EVT_BUTTON, self.On_Button)
+        self.add_button.Bind(wx.EVT_BUTTON, self.On_Add_Button)
+        self.remove_button.Bind(wx.EVT_BUTTON, self.On_Remove_Button)
         
        # Setup window properties
         #self.root_sizer.SetSizeHints(self)
@@ -73,7 +75,8 @@ class MyFrame(wx.Frame):
     def InitControls(self):
         # Right panel
         self.layer_sizer.Add(wx.StaticText(self, label='Layers'), 0, wx.ALIGN_LEFT)
-        self.layer_list = wx.ListBox(self, choices=['Scatter', 'Scatter'], style=wx.LB_MULTIPLE)
+        self.layer_list_items = ['Scatter']
+        self.layer_list = wx.ListBox(self, choices=self.layer_list_items , style=wx.LB_MULTIPLE)
         self.layer_sizer.Add(self.layer_list, 0, wx.EXPAND)
         self.layer_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.add_button = wx.Button(self, label='+')
@@ -123,8 +126,10 @@ class MyFrame(wx.Frame):
         self.layer_button_sizer2.Add(self.prev_button, 0, wx.ALIGN_CENTER)
         self.layer_button_sizer2.Add(self.next_button, 0, wx.ALIGN_CENTER)
         self.layer_sizer.Add(self.layer_button_sizer2, wx.ALIGN_TOP)
-        self.layer_sizer.AddSpacer(10)
+        self.label_snap = wx.StaticText(self, label='Snap: -')
+        self.layer_sizer.Add(self.label_snap, 0, flag=wx.ALIGN_LEFT)
         self.layer_sizer.Add(wx.StaticLine(self), 0, flag=wx.EXPAND)
+        self.layer_sizer.AddSpacer(10)
         
         # Available data list
         self.available_data = self.h5_data.keys
@@ -178,16 +183,16 @@ class MyFrame(wx.Frame):
     def set_statistics(self):
         self.label_min.SetLabel(f'Min: {self.h5_data.dataset_min:.2e}')
         self.label_max.SetLabel(f'Max: {self.h5_data.dataset_max:.2e}')
+        self.spin_min.SetDigits(100)
+        self.spin_max.SetDigits(100)
         self.spin_min.SetRange(self.h5_data.dataset_min, self.h5_data.dataset_max)
         self.spin_max.SetRange(self.h5_data.dataset_min, self.h5_data.dataset_max)
+        self.spin_min.SetIncrement(self.spin_min.GetValue()/10)
+        self.spin_max.SetIncrement(self.spin_max.GetValue()/10)
         
         self.spin_min.SetValue(self.h5_data.dataset_min)
         self.spin_max.SetValue(self.h5_data.dataset_max)
-        
-        self.spin_min.SetDigits(100)
-        self.spin_max.SetDigits(100)
-        self.spin_min.SetIncrement(self.spin_min.GetValue()/10)
-        self.spin_max.SetIncrement(self.spin_max.GetValue()/10)
+
         self.spin_min.SetDigits(self.digit)
         self.spin_max.SetDigits(self.digit)
 
@@ -198,12 +203,21 @@ class MyFrame(wx.Frame):
         evtobj.SetDigits(self.digit)
         self.image_panel.update()
 
+    def On_Remove_Button(self, event):
+        selection = self.layer_list.GetSelections()
+        if self.layer_list.GetCount()>1 and len(selection) > 0:
+            self.layer_list.Delete(selection[-1])
+
+    def On_Add_Button(self, event):
+        self.layer_list.Append('New Item')
+
     def On_Button(self, event):
-        self.OnChoice(None)
         if event.GetEventObject().GetLabel() == '<':
-            self.current_snapshot -= 1
+            if self.current_snapshot > 0:
+                self.current_snapshot -= 1
         if event.GetEventObject().GetLabel() == '>':
-            self.current_snapshot += 1
+            if self.current_snapshot < len(self.snapshots)-1:
+                self.current_snapshot += 1
         
         path = os.path.join(self.current_dir, str(*self.snapshots[self.current_snapshot]))
         self.h5_data = H5Data(path)
@@ -216,7 +230,7 @@ class MyFrame(wx.Frame):
         hist(self)
     
     def on_gl(self, evt):
-        GL_screen(data = self.h5_data)
+        GL_screen(parent=self.image_panel, keys='interactive', size=(800,800))
         
     def on_gl_vbo(self, evt):
         self.image_panel.draw_image_vbo()
@@ -293,11 +307,13 @@ class MyFrame(wx.Frame):
     # On dataset select
     def OnChoice(self, evt):
         self.h5_data.get_dataset(self.drop_list.GetStringSelection())
+        self.label_snap.SetLabel(f'Snap: {self.snapshots[self.current_snapshot][0]}')
         if self.h5_data.dataset_min<=0:
             self.check_log.SetValue(False)
             self.check_log.Disable()
         else:
             self.check_log.Enable()
+            self.check_log.SetValue(True)
         
         self.set_statistics()    
         self.image_panel.update()
@@ -345,10 +361,12 @@ class FileDialog(wx.FileDialog):
         dialog = wx.FileDialog(self, 'Open Gadget snapshot:',
                                 style=wx.DD_DEFAULT_STYLE,
                                 wildcard="HDF5 files (*.hdf5)|*.hdf5")
-        #path='/Users/martynas/App/SPHerture/snap_050.hdf5'
-        #frame = MyFrame(path=dialog.GetPath())
-        #self.InitUI(frame)
-        #return
+        path='/Users/martynas/App/SPHerture/snap_050.hdf5'
+        self.parent.path = path
+        self.parent.current_snapshot = dialog.GetFilename()
+        self.parent.current_dir = dialog.GetDirectory()
+        self.get_all()
+        return
         if dialog.ShowModal() == wx.ID_OK:
             try:
                 self.parent.path = dialog.GetPath()
@@ -360,7 +378,6 @@ class FileDialog(wx.FileDialog):
                 dlg = wx.MessageDialog(self, type(error).__name__, "No bueno!", wx.OK | wx.ICON_WARNING)
                 dlg.ShowModal()
                 dlg.Destroy()
-
 
     def get_all(self):
         filenames = next(os.walk(self.parent.current_dir), (None, None, []))[2]

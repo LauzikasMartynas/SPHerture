@@ -146,7 +146,6 @@ class DisplayPanel(wx.Panel):
         # If no dataset selected return
         data_set = self.parent.drop_list.GetStringSelection()
 
-        
         # Prevent repeated loading of the same dataset
         if self.old_dataset != data_set:
             self.current_data = self.parent.h5_data.get_volume(data_set, 128)
@@ -204,9 +203,10 @@ class DisplayPanel(wx.Panel):
         self.canvas.update()
 
     def draw_image_vbo(self):
-        vbo = GL_vbo(data = self.parent.h5_data)
+        vbo = GL_vbo(parent=self, show=True, size=(800,800))
         #print(self.canvas.scene.describe_tree())
         imager = np.copy(vbo.im)
+        print(imager)
         #imager[imager<0] = 1e-5
         plt.figure()
         plt.imshow(np.log10(imager[:,:,0]), vmin=-1, vmax=4, cmap='viridis')
