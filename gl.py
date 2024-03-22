@@ -19,7 +19,6 @@ attribute float a_size;
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
-uniform float u_pixel_scale; // 1 for most OS
 uniform float u_scaling; // Enlarges the hsml on "zoom in"
 
 // Local variables
@@ -29,9 +28,9 @@ varying float hsml;
 // Main
 void main (void) {
     v_fg_color  = vec4(a_color, 1.0);
-    hsml = a_size / 2.0 * u_scaling * u_pixel_scale;
+    hsml = a_size / 2.0 * u_scaling;
     gl_Position =  u_projection * u_view * u_model * vec4(a_position, 1.0);
-    gl_PointSize = a_size * u_scaling * u_pixel_scale;
+    gl_PointSize = a_size * u_scaling;
 }
 """
 
@@ -67,7 +66,7 @@ class GL_screen(app.Canvas):
         # GL position on screen [-1...1]
         v_position = data.pos#[::1000,:]
         max = np.amax(v_position)
-        self.cur_size = self.size[1]
+        self.cur_size = self.size[0]
         ratio = self.cur_size/max
         v_position = (v_position/max - 0.5)*2
         
@@ -76,7 +75,7 @@ class GL_screen(app.Canvas):
         
         # Object (2*hsml) size is in physical pixels
         v_size = data.hsml[:, np.newaxis]#[::1000,:]
-        v_size = v_size*2*ratio
+        v_size = v_size*2*ratio * ps
 
         # Create shade rprogram
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
@@ -98,7 +97,6 @@ class GL_screen(app.Canvas):
         self.program['u_view'] = self.view
         self.scaling = 1
         self.program['u_scaling'] = self.scaling
-        self.program['u_pixel_scale'] = ps
         
         self.set_current()
         gloo.set_state(clear_color='black', preset='additive')
@@ -110,13 +108,13 @@ class GL_screen(app.Canvas):
 
     def on_resize(self, event):
         self.aspect_ratio = self.size[0]/self.size[1]
-        ratio = self.size[1]/self.cur_size
+        ratio = self.size[0]/self.cur_size
         gloo.set_viewport(0, 0, *self.size)
         self.projection = ortho(-self.range, self.range, -self.range/self.aspect_ratio, self.range/self.aspect_ratio, 10.0, -10.0)
         self.program['u_projection'] = self.projection
         self.scaling *= ratio
         self.program['u_scaling'] = self.scaling/self.range
-        self.cur_size = self.size[1]
+        self.cur_size = self.size[0]
         self.update()
 
     def on_mouse_wheel(self, event):
@@ -168,7 +166,7 @@ class GL_vbo(app.Canvas):
         
         # Object (2*hsml) size is in physical pixels
         v_size = data.hsml[:, np.newaxis]
-        v_size = v_size*2*ratio
+        v_size = v_size*2*ratio*ps
         # Create shade rprogram
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         
@@ -188,8 +186,7 @@ class GL_vbo(app.Canvas):
         self.program['u_view'] = self.view
         self.scaling = 1
         self.program['u_scaling'] = self.scaling
-        self.program['u_pixel_scale'] = ps
-        
+
         self.set_current()
         gloo.set_state(clear_color='black', blend=True, preset='additive')
         

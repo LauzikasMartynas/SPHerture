@@ -191,7 +191,7 @@ class DisplayPanel(wx.Panel):
     
     def draw_image_vbo(self):
         ps = self.canvas2.pixel_scale
-        size = size=(1200*ps,1200*ps)
+        size = size=(1200,1200)
         vbo = GL_vbo(app='wx', parent=self, show=True, size=size)
         #print(self.canvas.scene.describe_tree())
         imager = np.copy(vbo.im)
@@ -212,8 +212,8 @@ class DisplayPanel(wx.Panel):
     def on_size(self, event):
         w, h = self.GetSize()
         self.canvas.size = (w,h)
-        if self.parent.draw_gl:
-            self.canvas2.size = (w,h)
+        #if self.parent.draw_gl:
+        #    self.canvas2.size = (w,h)
         self.Refresh()
 
     def on_show(self, event):
