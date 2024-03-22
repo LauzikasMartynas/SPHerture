@@ -25,7 +25,7 @@ class DisplayPanel(wx.Panel):
         self.canvas.view.camera.set_range()
         #self.canvas.view.camera.set_default_state()
 
-        self.canvas2 = GL_screen(app='wx', parent=self)# shared=self.image_panel.canvas)
+        self.canvas2 = GL_screen(app='wx', parent=self, show=False)# shared=self.image_panel.canvas)
 
     def on_exit(self, evt):
         self.canvas.close()
@@ -210,7 +210,8 @@ class DisplayPanel(wx.Panel):
     def on_size(self, event):
         w, h = self.GetSize()
         self.canvas.size = (w,h)
-        self.canvas2.size = (w,h)
+        if self.parent.draw_gl:
+            self.canvas2.size = (w,h)
         self.Refresh()
 
     def on_show(self, event):

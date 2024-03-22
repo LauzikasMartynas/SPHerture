@@ -103,7 +103,6 @@ class GL_screen(app.Canvas):
         self.set_current()
         gloo.set_state(clear_color='black', preset='additive')
         gloo.set_viewport(0, 0, *self.size)
-        self.show()
         
     def on_draw(self, event):
         gloo.clear(color=True, depth=False)
