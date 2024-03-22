@@ -1,7 +1,8 @@
 import wx
+from wx.lib.agw.floatspin import FloatSpin, EVT_FLOATSPIN
+
 import numpy as np
 
-from slider import RangeSlider
 from hdf5 import H5Data
 from plt import hist
 from VP import DisplayPanel
@@ -10,32 +11,38 @@ from  gl import GL_screen, GL_vbo
 import os
 import fnmatch
 
-
-
 from vispy import scene
 
 class MyFrame(wx.Frame):
     def __init__(self):
-        super().__init__(None, title='SPH Viewer')
+        super().__init__(None, title='SPHerture')
         # Create menu items and open dialog
         self.InitUI()
+        
+        self.path = None
         FileDialog(self)
+            
+        # Should close, but does not?
+        if self.path is None:
+              self.Destroy()
         
         self.h5_data = H5Data(self.path)
         
         # Sizers for image and controls
         self.root_sizer = wx.BoxSizer(wx.VERTICAL)
-        
         self.top_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.layer_sizer = wx.BoxSizer(wx.VERTICAL)
         self.control_sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         # Setup control menu
         self.InitControls()
-        # Preload data
-        self.h5_data.get_dataset(self.drop_list.GetStringSelection())
         
-        # Add controls and image to root sizer
+        # Preload default data
+        self.h5_data.get_dataset(self.drop_list.GetStringSelection())
+        # Update statistics
+        self.set_statistics()
+        
+        # Create main panel and add sizers
         self.image_panel = DisplayPanel(self)
         
         self.root_sizer.Add(self.top_sizer, 1, wx.EXPAND)
@@ -53,7 +60,8 @@ class MyFrame(wx.Frame):
         self.check_scatter.Bind(wx.EVT_CHECKBOX, self.OnCheck_scatter)
         self.check_iso.Bind(wx.EVT_CHECKBOX, self.OnCheck_iso)
         self.drop_vectors.Bind(wx.EVT_CHOICE, self.OnVector)
-        
+        self.spin_min.Bind(EVT_FLOATSPIN, self.OnSpin)
+        self.spin_max.Bind(EVT_FLOATSPIN, self.OnSpin)
         self.prev_button.Bind(wx.EVT_BUTTON, self.On_Button)
         self.next_button.Bind(wx.EVT_BUTTON, self.On_Button)
         
@@ -75,23 +83,48 @@ class MyFrame(wx.Frame):
         self.layer_sizer.Add(self.layer_button_sizer, wx.ALIGN_TOP)
         
         
+        # Statistics pane
         self.layer_sizer.AddStretchSpacer(1)
-        
-        self.r_slider = RangeSlider(parent=self, lowValue=0, highValue=100, minValue=0, maxValue=100, size=(150, 26))
-        self.r_slider.Bind(wx.EVT_SLIDER, self.rangeslider_changed)
-        self.layer_sizer.Add(self.r_slider, 0, flag = wx.ALIGN_CENTER)
-        self.r_label = wx.StaticText(self)
-        self.r_label.SetLabel('Min: {:.0f}, Max: {:.0f}'.format(*self.r_slider.GetValues()))
+        self.layer_sizer.Add(wx.StaticLine(self), 0, flag=wx.EXPAND)
+        self.label_stat = wx.StaticText(self, label='Statistics:')
+        self.label_min = wx.StaticText(self, label='Min: -')
+        self.label_max = wx.StaticText(self, label='Max: -')
+        self.layer_sizer.Add(self.label_stat, 0, flag=wx.ALIGN_LEFT)
+        self.layer_sizer.Add(self.label_min, 0, flag=wx.ALIGN_LEFT)
+        self.layer_sizer.Add(self.label_max, 0, flag=wx.ALIGN_LEFT)
+        self.layer_sizer.Add(wx.StaticLine(self), 0, flag=wx.EXPAND)
+        self.layer_sizer.AddSpacer(10)
 
-        self.layer_sizer.Add(self.r_label, 0, flag=wx.ALIGN_LEFT)
+        # Spinners        
+        spin_size = self.add_button.GetSize()[0]*2
+        self.digit = 3
+        self.layer_sizer.Add(wx.StaticText(self, label='Set min:'), 0, wx.ALIGN_LEFT)
+        self.spin_min = FloatSpin(self, value=0.0, min_val=0.0, max_val=1.0,
+                                  increment=0.01, digits=self.digit, size=(spin_size,-1))
+        self.spin_min.SetFormat('%e')
+        self.layer_sizer.Add(self.spin_min, wx.ALIGN_TOP)
         
+        self.layer_sizer.Add(wx.StaticText(self, label='Set max:'), 0, wx.ALIGN_LEFT)
+        self.spin_max = FloatSpin(self, value=0.0, min_val=0.0, max_val=1.0,
+                                  increment=0.01, digits=self.digit, size=(spin_size,-1))
+        self.spin_max.SetFormat('%e')
+        self.layer_sizer.Add(self.spin_max, wx.ALIGN_TOP)
+        self.layer_sizer.AddSpacer(20)
+                
+        # Snapshot buttons
+        self.layer_sizer.Add(wx.StaticLine(self), 0, wx.EXPAND)
         self.layer_sizer.Add(wx.StaticText(self, label='Snapshot:'), 0, wx.ALIGN_LEFT)
         self.layer_button_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
         self.prev_button = wx.Button(self, label='<')
         self.next_button = wx.Button(self, label='>')
+        if len(self.snapshots)<= 1:
+            self.prev_button.Disable()
+            self.next_button.Disable()
         self.layer_button_sizer2.Add(self.prev_button, 0, wx.ALIGN_CENTER)
         self.layer_button_sizer2.Add(self.next_button, 0, wx.ALIGN_CENTER)
         self.layer_sizer.Add(self.layer_button_sizer2, wx.ALIGN_TOP)
+        self.layer_sizer.AddSpacer(10)
+        self.layer_sizer.Add(wx.StaticLine(self), 0, flag=wx.EXPAND)
         
         # Available data list
         self.available_data = self.h5_data.keys
@@ -142,13 +175,31 @@ class MyFrame(wx.Frame):
         self.control_sizer.AddSpacer(10)
         self.control_sizer.Add(self.drop_vectors, 0, wx.ALIGN_CENTER)
 
-    def rangeslider_changed(self, evt):
-        obj = evt.GetEventObject()
-        lv, hv = obj.GetValues()
-        self.r_label.SetLabel('Min: {:.0f}, Max: {:.0f}'.format(lv, hv))
+    def set_statistics(self):
+        self.label_min.SetLabel(f'Min: {self.h5_data.dataset_min:.2e}')
+        self.label_max.SetLabel(f'Max: {self.h5_data.dataset_max:.2e}')
+        self.spin_min.SetRange(self.h5_data.dataset_min, self.h5_data.dataset_max)
+        self.spin_max.SetRange(self.h5_data.dataset_min, self.h5_data.dataset_max)
         
+        self.spin_min.SetValue(self.h5_data.dataset_min)
+        self.spin_max.SetValue(self.h5_data.dataset_max)
+        
+        self.spin_min.SetDigits(100)
+        self.spin_max.SetDigits(100)
+        self.spin_min.SetIncrement(self.spin_min.GetValue()/10)
+        self.spin_max.SetIncrement(self.spin_max.GetValue()/10)
+        self.spin_min.SetDigits(self.digit)
+        self.spin_max.SetDigits(self.digit)
+
+    def OnSpin(self, evt):
+        evtobj = evt.GetEventObject()
+        evtobj.SetDigits(100)
+        evtobj.SetIncrement(evtobj.GetValue()/10)
+        evtobj.SetDigits(self.digit)
+        self.image_panel.update()
 
     def On_Button(self, event):
+        self.OnChoice(None)
         if event.GetEventObject().GetLabel() == '<':
             self.current_snapshot -= 1
         if event.GetEventObject().GetLabel() == '>':
@@ -160,10 +211,6 @@ class MyFrame(wx.Frame):
         
     def open_dialog(self, event=None):
         FileDialog(self)
-    
-    def on_open_snapshot(self, event=None):
-        self.open_dialog()
-        self.image_panel.draw_scatter()
     
     def on_hist(self, evt):
         hist(self)
@@ -185,13 +232,10 @@ class MyFrame(wx.Frame):
 
     # Redraw on log
     def OnCheck_log(self, evt):
-        if self.check_vol.GetValue():
-            self.image_panel.draw_volume(True)
-        else:
-            self.image_panel.draw_scatter()
+        self.image_panel.update()
 
     def OnCheck_scatter(self, evt):
-        self.image_panel.draw_scatter()
+        self.image_panel.update()
             
     # Draw Volume
     def OnCheck_vol(self, evt):
@@ -244,7 +288,7 @@ class MyFrame(wx.Frame):
 
     # Redraw on vector list change
     def OnVector(self, evt):
-        self.image_panel.draw_arrows()
+        self.image_panel.update()
         
     # On dataset select
     def OnChoice(self, evt):
@@ -254,11 +298,9 @@ class MyFrame(wx.Frame):
             self.check_log.Disable()
         else:
             self.check_log.Enable()
-            
-        if self.check_vol.GetValue():
-            self.image_panel.draw_volume(True)
-        else:
-            self.image_panel.draw_scatter()
+        
+        self.set_statistics()    
+        self.image_panel.update()
 
     # Redraw on colormap change
     def OnCmap(self, evt):
@@ -284,7 +326,7 @@ class MyFrame(wx.Frame):
         self.SetMenuBar(menu_bar)
         
         # Add events
-        self.Bind(wx.EVT_MENU, self.on_open_snapshot, file_menu_open_item)
+        self.Bind(wx.EVT_MENU, self.open_dialog, file_menu_open_item)
         self.Bind(wx.EVT_MENU, self.OnExit, file_menu_exit)
         self.Bind(wx.EVT_MENU, self.on_hist, tools_menu_hist_item)
         self.Bind(wx.EVT_MENU, self.on_gl, tools_menu_gl_item)
@@ -298,7 +340,7 @@ class FileDialog(wx.FileDialog):
         super().__init__(parent)
         self.parent = parent
         self.open_dialog()
-        
+          
     def open_dialog(self, event=None):
         dialog = wx.FileDialog(self, 'Open Gadget snapshot:',
                                 style=wx.DD_DEFAULT_STYLE,
@@ -319,7 +361,6 @@ class FileDialog(wx.FileDialog):
                 dlg.ShowModal()
                 dlg.Destroy()
 
-        dialog.Destroy()
 
     def get_all(self):
         filenames = next(os.walk(self.parent.current_dir), (None, None, []))[2]
@@ -329,13 +370,11 @@ class FileDialog(wx.FileDialog):
         
 if __name__ == '__main__':
     app = wx.App(False)
-    frame=MyFrame()
+    frame = MyFrame()
     if 'Win' in wx.GetOsDescription():
         frame.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_MENU))
         frame.Refresh()
-    #frame.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_MENU))
     # Uncomment for debug
     #import wx.lib.inspection
     #wx.lib.inspection.InspectionTool().Show()
-    
     app.MainLoop()

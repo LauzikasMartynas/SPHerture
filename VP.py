@@ -20,53 +20,69 @@ class DisplayPanel(wx.Panel):
         self.Bind(wx.EVT_CLOSE, self.on_exit)
         
         self.canvas = MyCanvas(app='wx', parent=self, keys='interactive')
-        self.draw_scatter()
+        self.update()
         self.canvas.view.camera.set_range()
-        self.canvas.view.camera.set_default_state()
+        #self.canvas.view.camera.set_default_state()
 
     def on_exit(self, evt):
         self.canvas.close()
         self.Destroy()
 
     def update(self):
-        self.draw_scatter()
-        self.draw_arrows()
-        self.draw_iso()
-        self.draw_volume()
-
-    def draw_scatter(self):
         data_set = self.parent.drop_list.GetStringSelection()
-        
+        vector_set = self.parent.drop_vectors.GetStringSelection()
         if self.parent.check_scatter.GetValue():
+            self.draw_scatter()
             self.canvas.scatter.visible = True
         else:
             self.canvas.scatter.visible = False
+        
+        if vector_set != 'None':
+            self.canvas.arrows.visible = True
+            self.draw_arrows()
+        else:
+            self.canvas.arrows.visible = False
             return
+        
+        if  self.parent.check_iso.GetValue():
+            self.draw_iso()
+            self.canvas.iso.visible = True
+        else:
+            self.canvas.iso.visible = False
+            return
+        
+        if self.parent.check_vol.GetValue():
+            self.draw_volume()
+            self.canvas.col.visible = True
+        else:
+            self.canvas.vol.visible = False
+            return
+        
 
-        # Get dataset
+    def draw_scatter(self):
         data = np.copy(self.parent.h5_data.dataset_data)
+
+        # Filter slider
+        lv = self.parent.spin_min.GetValue()
+        hv = self.parent.spin_max.GetValue()
+        mask = np.logical_and(data >= lv, data <= hv)
+        data = data[mask]
         
         #Select colormap and normalise data to [0, 1]
         cmap = self.get_cmap(self.parent.drop_cmap.GetStringSelection())
         if self.parent.check_log.GetValue():
             data = np.log10(data)
+
         data -= np.amin(data)
-        data = data/np.amax(data)
+        data /= np.amax(data)
 
         # Scatter
-        self.canvas.scatter.set_data(self.parent.h5_data.pos, edge_width=0, face_color=cmap[data], size=0.1)
-        #self.canvas.view.camera.set_range((self.parent.h5_data.xmin,self.parent.h5_data.xmax), (self.parent.h5_data.ymin,self.parent.h5_data.ymax), (self.parent.h5_data.zmin,self.parent.h5_data.zmax))
-
+        self.canvas.scatter.set_data(self.parent.h5_data.pos[mask], edge_width=0, face_color=cmap[data], size=0.1)
         self.canvas.update()
 
     def draw_arrows(self):
         dataset = self.parent.drop_vectors.GetStringSelection()
-        if dataset != 'None':
-            self.canvas.arrows.visible = True
-            vector_data = self.parent.h5_data.get_dataset_vec(dataset)
-        else:
-            self.canvas.arrows.visible = False
-            return
+        vector_data = self.parent.h5_data.get_dataset_vec(dataset)
         
         # Get pos with stride
         data = vector_data[::50, :]
@@ -87,9 +103,7 @@ class DisplayPanel(wx.Panel):
     def draw_iso(self, redraw=False):
         # If no dataset selected return
         data_set = self.parent.drop_list.GetStringSelection()
-        if  not self.parent.check_iso.GetValue():
-            self.canvas.iso.visible = False
-            return
+
         
         # Prevent repeated loading of the same dataset
         if self.old_dataset != data_set:
@@ -131,9 +145,7 @@ class DisplayPanel(wx.Panel):
     def draw_volume(self, redraw=False):
         # If no dataset selected return
         data_set = self.parent.drop_list.GetStringSelection()
-        if data_set=='None':
-            self.canvas.vol.visible = False
-            return
+
         
         # Prevent repeated loading of the same dataset
         if self.old_dataset != data_set:
@@ -291,7 +303,7 @@ class MyCanvas(scene.SceneCanvas):
         self.make_xyz()
         
         # Show fps in console
-        self.measure_fps()
+        #self.measure_fps()
         
         self.show()
 
