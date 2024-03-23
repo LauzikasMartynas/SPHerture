@@ -16,6 +16,7 @@ class H5Data():
         self.zmin = None
         self.zmax = None
         
+        self.iso_volume = None
         self.volume = None
         
         # Dataset properties
@@ -85,14 +86,37 @@ class H5Data():
         rot_pos[:,2] = self.pos[:,2] *1.1
         self.Tree = KDTree(rot_pos, leafsize=100)
         
-    def get_volume(self, dataset, res):
+    def get_iso_volume(self, dataset, res):
         self.prebuild_volume()
         X, Y, Z = np.meshgrid(np.linspace(self.xmin, self.xmax, res, endpoint=False),
                               np.linspace(self.ymin, self.ymax, res, endpoint=False),
                              np.linspace(self.zmin, self.zmax, res, endpoint=False))
         self.XYZ = np.vstack((X.ravel(), Y.ravel(), Z.ravel())).T
         
-        _, IND = self.Tree.query(self.XYZ, k=16, workers=-1)
+        _, IND = self.Tree.query(self.XYZ, k=8, workers=-1)
+        
+        grid = np.mean(self.get_dataset(dataset)[IND], axis=1)
+        
+        #if dataset in self.vector_keys:
+        #    self.volume = grid.reshape(res, res, res, 3)
+        #else:
+        self.iso_volume = grid.reshape(res, res, res)
+        
+        return self.iso_volume
+    
+    def get_volume(self, dataset, res):
+        rot_pos = np.empty_like(self.pos)
+        rot_pos[:,0] = self.pos[:,0] *1.1
+        rot_pos[:,1] = self.pos[:,2] *1.1
+        rot_pos[:,2] = self.pos[:,1] *1.1
+        self.Tree = KDTree(rot_pos, leafsize=100)
+        
+        X, Y, Z = np.meshgrid(np.linspace(self.xmin, self.xmax, res, endpoint=False),
+                              np.linspace(self.ymin, self.ymax, res, endpoint=False),
+                             np.linspace(self.zmin, self.zmax, res, endpoint=False))
+        self.XYZ = np.vstack((X.ravel(), Y.ravel(), Z.ravel())).T
+        
+        _, IND = self.Tree.query(self.XYZ, k=8, workers=-1)
         
         grid = np.mean(self.get_dataset(dataset)[IND], axis=1)
         

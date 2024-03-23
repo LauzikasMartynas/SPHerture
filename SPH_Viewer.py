@@ -24,6 +24,7 @@ class MyFrame(wx.Frame):
 
         # Cant close with Destroy thus using Exit
         if self.path is None:
+            self.Destroy()
             wx.Exit()
         
         self.h5_data = H5Data(self.path)
@@ -39,6 +40,7 @@ class MyFrame(wx.Frame):
         
         # Preload default data
         self.h5_data.get_dataset(self.drop_list.GetStringSelection())
+        
         # Update statistics
         self.set_statistics()
         
@@ -51,8 +53,8 @@ class MyFrame(wx.Frame):
         self.root_sizer.Add(self.control_sizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
         
         # Bind events
-        self.slider.Bind(wx.EVT_SCROLL, self.OnScroll)
-        self.slider_gamma.Bind(wx.EVT_SCROLL, self.OnScroll_gamma)
+        self.slider_left.Bind(wx.EVT_SCROLL, self.OnScroll_left)
+        self.slider_right.Bind(wx.EVT_SCROLL, self.OnScroll_right)
         self.drop_list.Bind(wx.EVT_CHOICE, self.OnChoice)
         self.drop_cmap.Bind(wx.EVT_CHOICE, self.OnCmap)
         self.check_vol.Bind(wx.EVT_CHECKBOX, self.OnCheck_vol)
@@ -67,7 +69,7 @@ class MyFrame(wx.Frame):
         self.add_button.Bind(wx.EVT_BUTTON, self.On_Add_Button)
         self.remove_button.Bind(wx.EVT_BUTTON, self.On_Remove_Button)
         
-        # Remove infuture
+        # Remove in future
         self.draw_gl = False
         
        # Setup window properties
@@ -88,7 +90,6 @@ class MyFrame(wx.Frame):
         self.layer_button_sizer.Add(self.remove_button, 0, wx.ALIGN_CENTER)
         self.layer_sizer.Add(self.layer_button_sizer, wx.ALIGN_TOP)
         
-        
         # Statistics pane
         self.layer_sizer.AddStretchSpacer(1)
         self.layer_sizer.Add(wx.StaticLine(self), 0, flag=wx.EXPAND)
@@ -105,14 +106,12 @@ class MyFrame(wx.Frame):
         spin_size = self.add_button.GetSize()[0]*2
         self.digit = 3
         self.layer_sizer.Add(wx.StaticText(self, label='Set min:'), 0, wx.ALIGN_LEFT)
-        self.spin_min = FloatSpin(self, value=0.0, min_val=0.0, max_val=1.0,
-                                  increment=0.01, digits=self.digit, size=(spin_size,-1))
+        self.spin_min = FloatSpin(self, digits=self.digit, size=(spin_size,-1))
         self.spin_min.SetFormat('%e')
         self.layer_sizer.Add(self.spin_min, wx.ALIGN_TOP)
         
         self.layer_sizer.Add(wx.StaticText(self, label='Set max:'), 0, wx.ALIGN_LEFT)
-        self.spin_max = FloatSpin(self, value=0.0, min_val=0.0, max_val=1.0,
-                                  increment=0.01, digits=self.digit, size=(spin_size,-1))
+        self.spin_max = FloatSpin(self, digits=self.digit, size=(spin_size,-1))
         self.spin_max.SetFormat('%e')
         self.layer_sizer.Add(self.spin_max, wx.ALIGN_TOP)
         self.layer_sizer.AddSpacer(20)
@@ -140,11 +139,11 @@ class MyFrame(wx.Frame):
         self.drop_list.SetStringSelection('Density')
         self.control_sizer.Add(self.drop_list, 0, wx.ALIGN_CENTER)
         
-        # First slider
-        self.slider = wx.Slider(self, value=20, minValue=0, maxValue=100)
+        # Left slider
+        self.slider_left = wx.Slider(self, value=20, minValue=0, maxValue=100)
         self.control_sizer.AddSpacer(10)
         #self.control_sizer.Add(wx.StaticText(self, label='Hue:'), 0, wx.ALIGN_CENTER)
-        self.control_sizer.Add(self.slider, 0, wx.ALIGN_CENTER)
+        self.control_sizer.Add(self.slider_left, 0, wx.ALIGN_CENTER)
         
         # Colormap list
         self.available_cmaps = ['HSL', 'Viridis', 'Inferno', 'Heat', 'BlueRed', 'Copper', 'SingleHue', 'Gray']
@@ -153,11 +152,11 @@ class MyFrame(wx.Frame):
         self.control_sizer.AddSpacer(10)
         self.control_sizer.Add(self.drop_cmap, 0, wx.ALIGN_CENTER)
         
-        # Gamma slider
-        self.slider_gamma = wx.Slider(self, value=100, minValue=1, maxValue=100)
+        # Right slider
+        self.slider_right = wx.Slider(self, value=100, minValue=1, maxValue=100)
         self.control_sizer.AddSpacer(10)
         #self.control_sizer.Add(wx.StaticText(self, label='Hue:'), 0, wx.ALIGN_CENTER)
-        self.control_sizer.Add(self.slider_gamma, 0, wx.ALIGN_CENTER)
+        self.control_sizer.Add(self.slider_right, 0, wx.ALIGN_CENTER)
         self.control_sizer.AddSpacer(10)
         
         # Check box sizer
@@ -184,25 +183,33 @@ class MyFrame(wx.Frame):
         self.control_sizer.Add(self.drop_vectors, 0, wx.ALIGN_CENTER)
 
     def set_statistics(self):
-        self.label_min.SetLabel(f'Min: {self.h5_data.dataset_min:.2e}')
-        self.label_max.SetLabel(f'Max: {self.h5_data.dataset_max:.2e}')
-        self.spin_min.SetDigits(100)
-        self.spin_max.SetDigits(100)
-        self.spin_min.SetRange(self.h5_data.dataset_min, self.h5_data.dataset_max)
-        self.spin_max.SetRange(self.h5_data.dataset_min, self.h5_data.dataset_max)
-        self.spin_min.SetIncrement(self.spin_min.GetValue()/10)
-        self.spin_max.SetIncrement(self.spin_max.GetValue()/10)
-        
+        self.label_snap.SetLabel(f'Snap: {self.snapshots[self.current_snapshot][0]}')
+        self.label_min.SetLabel(f'Min: {self.h5_data.dataset_min:.3e}')
+        self.label_max.SetLabel(f'Max: {self.h5_data.dataset_max:.3e}')
+        self.spin_min.SetDigits(50)
+        self.spin_max.SetDigits(50)
         self.spin_min.SetValue(self.h5_data.dataset_min)
         self.spin_max.SetValue(self.h5_data.dataset_max)
-
+        
+        if self.h5_data.dataset_min != 0:
+            self.spin_min.SetIncrement(abs(self.spin_min.GetValue()/10))
+        
+        if self.h5_data.dataset_max != 0:
+            self.spin_max.SetIncrement(abs(self.spin_max.GetValue()/10))
+        
         self.spin_min.SetDigits(self.digit)
         self.spin_max.SetDigits(self.digit)
+        
+        #self.slider_left.SetValue(100)
+        
+        #value = (self.h5_data.dataset_max-self.h5_data.dataset_min)/50 + self.h5_data.dataset_min
+        #self.slider_right.SetValue(int(value))
+        
 
     def OnSpin(self, evt):
         evtobj = evt.GetEventObject()
-        evtobj.SetDigits(100)
-        evtobj.SetIncrement(evtobj.GetValue()/10)
+        evtobj.SetDigits(50)
+        evtobj.SetIncrement(abs(evtobj.GetValue()/10))
         evtobj.SetDigits(self.digit)
         self.image_panel.update()
 
@@ -241,7 +248,7 @@ class MyFrame(wx.Frame):
         self.image_panel.draw_image_vbo()
         
     def OnExit(self, evt=None):
-        #self.image_panel.Destroy()
+        self.image_panel.Destroy()
         self.Destroy()
 
     def preload_data(self):
@@ -256,49 +263,24 @@ class MyFrame(wx.Frame):
             
     # Draw Volume
     def OnCheck_vol(self, evt):
-        evtobj = evt.GetEventObject()
-        if evtobj.GetValue():
-            self.image_panel.draw_volume(redraw=True)
-            #self.image_panel.canvas.plane_position[1] = self.slider.GetValue()
-            self.image_panel.canvas.vol.threshold = self.slider.GetValue()/100
-            self.image_panel.canvas.vol.attenuation = self.slider.GetValue()/100
-            self.image_panel.canvas.update()
-        else:
-            self.image_panel.canvas.vol.visible = False
+        self.image_panel.update(redraw=True)
 
     # Draw Isosurface
     def OnCheck_iso(self, evt):
-        evtobj = evt.GetEventObject()
-        if evtobj.GetValue():
-            self.image_panel.canvas.threshold = self.slider.GetValue()/100
-            self.image_panel.draw_iso(redraw=True)
-            self.image_panel.canvas.update()
-        else:
-            self.image_panel.canvas.iso.visible = False
-  
+        self.image_panel.update(redraw=True)
 
     # Change property of an object, (object dependant)
-    def OnScroll(self, evt):
-        if self.check_vol.GetValue():
-            #self.image_panel.canvas.vol.threshold = self.slider.GetValue()/100
-            #self.image_panel.canvas.vol.attenuation = self.slider.GetValue()/100
-            self.image_panel.canvas.plane_position[1] = self.slider.GetValue()/100
-            self.image_panel.canvas.update()
-        elif self.check_iso.GetValue():
-            self.image_panel.canvas.threshold = self.slider.GetValue()/100
-            self.image_panel.draw_iso(redraw=True)
-            self.image_panel.canvas.update()
-        else:
-            self.image_panel.draw_scatter()
+    def OnScroll_left(self, evt):
+        #self.image_panel.canvas.vol.threshold = self.slider_left.GetValue()/100
+        #self.image_panel.canvas.vol.attenuation = self.slider_left.GetValue()/100
+        #self.image_panel.canvas.plane_position[1] = self.slider_left.GetValue()/100
+        self.image_panel.update(redraw=False)
 
     # Change brightness of an object
-    def OnScroll_gamma(self, evt):
-        if self.check_vol.GetValue():
-            self.image_panel.canvas.vol.gamma = self.slider_gamma.GetValue()/10
-        if self.check_iso.GetValue():
-            self.image_panel.canvas.alpha = self.slider_gamma.GetValue()/100
-            self.image_panel.draw_iso(redraw=True)
-        self.image_panel.update()
+    def OnScroll_right(self, evt):
+        #self.image_panel.canvas.vol.gamma = self.slider_right.GetValue()/10
+        #self.image_panel.canvas.alpha = self.slider_right.GetValue()/100
+        self.image_panel.update(redraw=False)
 
     # Redraw on vector list change
     def OnVector(self, evt):
@@ -307,16 +289,16 @@ class MyFrame(wx.Frame):
     # On dataset select
     def OnChoice(self, evt):
         self.h5_data.get_dataset(self.drop_list.GetStringSelection())
-        self.label_snap.SetLabel(f'Snap: {self.snapshots[self.current_snapshot][0]}')
+        self.set_statistics()
+        
         if self.h5_data.dataset_min<=0:
             self.check_log.SetValue(False)
             self.check_log.Disable()
         else:
             self.check_log.Enable()
             self.check_log.SetValue(True)
-        
-        self.set_statistics()    
-        self.image_panel.update()
+    
+        self.image_panel.update(True)
 
     # Redraw on colormap change
     def OnCmap(self, evt):

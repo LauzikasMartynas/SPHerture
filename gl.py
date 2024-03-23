@@ -87,8 +87,8 @@ class GL_screen(app.Canvas):
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
         
         # Debug
-        GL_ALIASED_POINT_SIZE_RANGE = 33901
-        print(gloo.gl.glGetParameter(GL_ALIASED_POINT_SIZE_RANGE))
+        #GL_ALIASED_POINT_SIZE_RANGE = 33901
+        #print(gloo.gl.glGetParameter(GL_ALIASED_POINT_SIZE_RANGE))
         
         # Send data to shader
         self.program['a_color'] = gloo.VertexBuffer(v_color)
