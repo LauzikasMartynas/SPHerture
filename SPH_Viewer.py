@@ -295,13 +295,10 @@ class MyFrame(wx.Frame):
     def OnScroll_gamma(self, evt):
         if self.check_vol.GetValue():
             self.image_panel.canvas.vol.gamma = self.slider_gamma.GetValue()/10
-            self.image_panel.canvas.update()
-        elif self.check_iso.GetValue():
+        if self.check_iso.GetValue():
             self.image_panel.canvas.alpha = self.slider_gamma.GetValue()/100
             self.image_panel.draw_iso(redraw=True)
-            self.image_panel.canvas.update()
-        else:
-            self.image_panel.draw_scatter()
+        self.image_panel.update()
 
     # Redraw on vector list change
     def OnVector(self, evt):

@@ -19,15 +19,18 @@ attribute float a_size;
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
-uniform float u_scaling; // Enlarges the hsml on "zoom in"
+uniform float u_scaling;
+uniform float u_gamma;
 
 // Local variables
 varying vec4 v_fg_color;
 varying float hsml;
+varying float gamma;
 
 // Main
 void main (void) {
     v_fg_color  = vec4(a_color, 1.0);
+    gamma = u_gamma;
     hsml = a_size / 2.0 * u_scaling;
     gl_Position =  u_projection * u_view * u_model * vec4(a_position, 1.0);
     gl_PointSize = a_size * u_scaling;
@@ -40,6 +43,7 @@ precision highp float;
 
 varying vec4 v_fg_color;
 varying float hsml;
+varying float gamma;
 
 void main()
 {
@@ -49,7 +53,7 @@ void main()
     else
         {
         float alpha = 7 / (3.14159*hsml*hsml) * (1-q)*(1-q)*(1-q)*(1-q) * (4*q+1);
-        gl_FragColor = vec4(v_fg_color.r, 0, 0, alpha);
+        gl_FragColor = vec4(v_fg_color.r, 0, 0, pow(alpha, 1/gamma));
         }
 }
 """
@@ -57,8 +61,10 @@ void main()
 class GL_screen(app.Canvas):
     def __init__(self, *args, **kwargs):
         app.Canvas.__init__(self, *args, **kwargs)
+        
         data=kwargs['parent'].parent.h5_data
         ps = self.pixel_scale
+        self.gamma = 1
         self.theta = 0
         self.phi = 0
         self.aspect_ratio = self.size[0]/self.size[1]
@@ -77,8 +83,12 @@ class GL_screen(app.Canvas):
         v_size = data.hsml[:, np.newaxis]#[::1000,:]
         v_size = v_size*2*ratio * ps
 
-        # Create shade rprogram
+        # Create shader program
         self.program = gloo.Program(VERT_SHADER, FRAG_SHADER)
+        
+        # Debug
+        GL_ALIASED_POINT_SIZE_RANGE = 33901
+        print(gloo.gl.glGetParameter(GL_ALIASED_POINT_SIZE_RANGE))
         
         # Send data to shader
         self.program['a_color'] = gloo.VertexBuffer(v_color)
@@ -97,6 +107,7 @@ class GL_screen(app.Canvas):
         self.program['u_view'] = self.view
         self.scaling = 1
         self.program['u_scaling'] = self.scaling
+        self.program['u_gamma'] = self.gamma
         
         self.set_current()
         gloo.set_state(clear_color='black', preset='additive')
@@ -186,6 +197,7 @@ class GL_vbo(app.Canvas):
         self.program['u_view'] = self.view
         self.scaling = 1
         self.program['u_scaling'] = self.scaling
+        self.program['u_gamma'] = 1
 
         self.set_current()
         gloo.set_state(clear_color='black', blend=True, preset='additive')

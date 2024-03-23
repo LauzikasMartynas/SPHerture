@@ -21,11 +21,11 @@ class DisplayPanel(wx.Panel):
         self.Bind(wx.EVT_CLOSE, self.on_exit)
         
         self.canvas = MyCanvas(app='wx', parent=self)
+        self.canvas2 = GL_screen(app='wx', parent=self, show=False)# shared=self.image_panel.canvas)
         self.update()
         self.canvas.view.camera.set_range()
         #self.canvas.view.camera.set_default_state()
 
-        self.canvas2 = GL_screen(app='wx', parent=self, show=False)# shared=self.image_panel.canvas)
 
     def on_exit(self, evt):
         self.canvas.close()
@@ -46,21 +46,23 @@ class DisplayPanel(wx.Panel):
             self.draw_arrows()
         else:
             self.canvas.arrows.visible = False
-            return
         
-        if  self.parent.check_iso.GetValue():
-            self.draw_iso()
-            self.canvas.iso.visible = True
-        else:
-            self.canvas.iso.visible = False
-            return
+        if  self.canvas.iso is not None:
+            if  self.parent.check_iso.GetValue():
+                self.draw_iso()
+                self.canvas.iso.visible = True
+            else:
+                self.canvas.iso.visible = False
         
-        if self.parent.check_vol.GetValue():
-            self.draw_volume()
-            self.canvas.col.visible = True
-        else:
-            self.canvas.vol.visible = False
-            return
+        if  self.canvas.vol is not None:
+            if self.parent.check_vol.GetValue():
+                self.draw_volume()
+                self.canvas.col.visible = True
+            else:
+                self.canvas.vol.visible = False
+        
+        self.canvas2.program['u_gamma'] = self.parent.slider_gamma.GetValue()/50
+        self.canvas2.update()
         
 
     def draw_scatter(self):
