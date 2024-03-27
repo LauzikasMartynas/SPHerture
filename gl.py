@@ -53,7 +53,7 @@ void main()
     else
         {
         float alpha = 7 / (3.14159*hsml*hsml) * (1-q)*(1-q)*(1-q)*(1-q) * (4*q+1);
-        gl_FragColor = vec4(v_fg_color.r, 0, 0, pow(alpha, 1/gamma));
+        gl_FragColor = vec4(pow(alpha, 1/gamma), 0, 0, pow(alpha, 1/gamma));
         }
 }
 """

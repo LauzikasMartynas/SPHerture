@@ -8,6 +8,11 @@ import time
 class H5Data():
     def __init__(self, path):
         self.path = None
+        self.keys = []
+        self.vector_keys = ['None']
+        
+        self.data = {}
+        
         self.pos = None
         self.xmin = None
         self.xmax = None
@@ -22,18 +27,22 @@ class H5Data():
         # Dataset properties
         self.dataset_name = ''
         self.dataset_data = None
-        self.dataset_name_vec = ''
-        self.dataset_data_vec = None
         self.dataset_min = None
         self.dataset_max = None
+        
+        self.dataset_name_vec = ''
+        self.dataset_data_vec = None
 
         with h5py.File(path, 'r') as file:
-            file['PartType0']
             self.path = path
             
-            # Get available datasets
-            self.keys = []
-            self.vector_keys = ['None']
+            for root_key in file.keys():
+                continue
+                self.data[root_key] = {}
+                self.data[root_key]['keys'] = list(file[root_key].keys())
+                for attrib in file[root_key].attrs.keys():
+                    self.data[root_key][attrib] = file[root_key].attrs[attrib]
+            
             for key in file['PartType0'].keys():
                 if key in ('Coordinates', 'HydroAcceleration'):
                     continue
@@ -47,8 +56,6 @@ class H5Data():
         if self.pos is None:
             with h5py.File(self.path, 'r') as file:
                 # Load and center
-                header = file['Header']
-                header.attrs['NumPart_Total']
                 self.pos = file['PartType0']['Coordinates'][()]
                 self.hsml = file['PartType0']['SmoothingLength'][()]
                 self.xmin = np.amin(self.pos[:,0])
@@ -80,17 +87,13 @@ class H5Data():
             return self.dataset_data_vec
 
     def prebuild_volume(self):
-        rot_pos = np.empty_like(self.pos)
-        rot_pos[:,0] = self.pos[:,1] *1.1
-        rot_pos[:,1] = self.pos[:,0] *1.1
-        rot_pos[:,2] = self.pos[:,2] *1.1
-        self.Tree = KDTree(rot_pos, leafsize=100)
+        self.Tree = KDTree(self.pos[:,[1,0,2]], leafsize=100)
         
     def get_iso_volume(self, dataset, res):
         self.prebuild_volume()
-        X, Y, Z = np.meshgrid(np.linspace(self.xmin, self.xmax, res, endpoint=False),
-                              np.linspace(self.ymin, self.ymax, res, endpoint=False),
-                             np.linspace(self.zmin, self.zmax, res, endpoint=False))
+        X, Y, Z = np.meshgrid(np.linspace(self.xmin, self.xmax, res, endpoint=True),
+                              np.linspace(self.ymin, self.ymax, res, endpoint=True),
+                             np.linspace(self.zmin, self.zmax, res, endpoint=True))
         self.XYZ = np.vstack((X.ravel(), Y.ravel(), Z.ravel())).T
         
         _, IND = self.Tree.query(self.XYZ, k=8, workers=-1)
@@ -105,15 +108,11 @@ class H5Data():
         return self.iso_volume
     
     def get_volume(self, dataset, res):
-        rot_pos = np.empty_like(self.pos)
-        rot_pos[:,0] = self.pos[:,1] *1.1
-        rot_pos[:,1] = self.pos[:,2] *1.1
-        rot_pos[:,2] = self.pos[:,0] *1.1
-        Tree = KDTree(rot_pos, leafsize=100)
+        Tree = KDTree(self.pos[:,[1,2,0]], leafsize=100)
         
-        X, Y, Z = np.meshgrid(np.linspace(self.xmin, self.xmax, res, endpoint=False),
-                              np.linspace(self.ymin, self.ymax, res, endpoint=False),
-                             np.linspace(self.zmin, self.zmax, res, endpoint=False))
+        X, Y, Z = np.meshgrid(np.linspace(self.xmin, self.xmax, res, endpoint=True),
+                              np.linspace(self.ymin, self.ymax, res, endpoint=True),
+                             np.linspace(self.zmin, self.zmax, res, endpoint=True))
         XYZ = np.vstack((X.ravel(), Y.ravel(), Z.ravel())).T
         
         _, IND = Tree.query(XYZ, k=8, workers=-1)

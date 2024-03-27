@@ -80,7 +80,7 @@ class MyFrame(wx.Frame):
     def InitControls(self):
         # Right panel
         self.layer_sizer.Add(wx.StaticText(self, label='Layers'), 0, wx.ALIGN_LEFT)
-        self.layer_list_items = ['Scatter']
+        self.layer_list_items = []
         self.layer_list = wx.ListBox(self, choices=self.layer_list_items , style=wx.LB_MULTIPLE)
         self.layer_sizer.Add(self.layer_list, 0, wx.EXPAND)
         self.layer_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -215,11 +215,16 @@ class MyFrame(wx.Frame):
 
     def On_Remove_Button(self, event):
         selection = self.layer_list.GetSelections()
-        if self.layer_list.GetCount()>1 and len(selection) > 0:
-            self.layer_list.Delete(selection[-1])
+        for item in selection:
+            self.layer_list.Delete(item)
+            self.image_panel.canvas.iso.pop()
+        #if self.layer_list.GetCount()>1 and len(selection) > 0:
+        #    self.layer_list.Delete(selection[-1])
 
     def On_Add_Button(self, event):
-        self.layer_list.Append('New Item')
+        if self.check_iso.GetValue():
+            self.image_panel.update(redraw=True, append=True)
+            self.layer_list.Append(str(self.image_panel.canvas.iso[-1]))
 
     def On_Button(self, event):
         if event.GetEventObject().GetLabel() == '<':
@@ -256,7 +261,7 @@ class MyFrame(wx.Frame):
 
     # Redraw on log
     def OnCheck_log(self, evt):
-        self.image_panel.update()
+        self.image_panel.update(redraw=True)
 
     def OnCheck_scatter(self, evt):
         self.image_panel.update()
@@ -271,15 +276,10 @@ class MyFrame(wx.Frame):
 
     # Change property of an object, (object dependant)
     def OnScroll_left(self, evt):
-        #self.image_panel.canvas.vol.threshold = self.slider_left.GetValue()/100
-        #self.image_panel.canvas.vol.attenuation = self.slider_left.GetValue()/100
-        #self.image_panel.canvas.plane_position[1] = self.slider_left.GetValue()/100
         self.image_panel.update(redraw=False)
 
     # Change brightness of an object
     def OnScroll_right(self, evt):
-        #self.image_panel.canvas.vol.gamma = self.slider_right.GetValue()/10
-        #self.image_panel.canvas.alpha = self.slider_right.GetValue()/100
         self.image_panel.update(redraw=False)
 
     # Redraw on vector list change
@@ -302,7 +302,7 @@ class MyFrame(wx.Frame):
 
     # Redraw on colormap change
     def OnCmap(self, evt):
-        self.image_panel.update()
+        self.image_panel.update(True)
 
 
     def InitUI(self):
@@ -349,6 +349,7 @@ class FileDialog(wx.FileDialog):
         #self.parent.current_dir = dialog.GetDirectory()
         #self.get_all()
         #return
+        wx.TopLevelWindow.RequestUserAttention(self)
         if dialog.ShowModal() == wx.ID_OK:
             try:
                 self.parent.path = dialog.GetPath()

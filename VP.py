@@ -8,6 +8,9 @@ from vispy.gloo import gl
 from gl import GL_vbo, GL_screen, VERT_SHADER, FRAG_SHADER
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+from vispy.gloo import VertexBuffer
+
+use(gl='gl+')
 
 class DisplayPanel(wx.Panel):
     def __init__(self, parent):
@@ -16,6 +19,8 @@ class DisplayPanel(wx.Panel):
         #print(util.dpi.get_dpi())
         self.parent = parent
         self.old_dataset = ''
+        self.old_iso_dataset = ''
+        self.res = 100
         
         self.Bind(wx.EVT_SIZE, self.on_size)
         self.Bind(wx.EVT_CLOSE, self.on_exit)
@@ -32,7 +37,7 @@ class DisplayPanel(wx.Panel):
         self.canvas2.close()
         self.Destroy()
 
-    def update(self, redraw=False):
+    def update(self, redraw=False, append=False):
         data_set = self.parent.drop_list.GetStringSelection()
         vector_set = self.parent.drop_vectors.GetStringSelection()
         
@@ -50,11 +55,13 @@ class DisplayPanel(wx.Panel):
         
         # Iso
         if self.parent.check_iso.GetValue():
-            self.draw_iso(redraw)
-            self.canvas.iso.visible = True
+            if len(self.canvas.iso)==0:
+                append=True
+            self.draw_iso(redraw, append)
+            self.canvas.iso[-1].visible = True
         else:
-            if self.canvas.iso is not None:
-                self.canvas.iso.visible = False
+            if len(self.canvas.iso) > 0:
+                self.canvas.iso[-1].visible = False
         
         # Vol
         if self.parent.check_vol.GetValue():
@@ -63,6 +70,8 @@ class DisplayPanel(wx.Panel):
         else:
             if self.canvas.vol is not None:
                 self.canvas.vol.visible = False
+        
+        self.canvas.update()
         
         self.canvas2.program['u_gamma'] = self.parent.slider_right.GetValue()/75
         self.canvas2.update()
@@ -88,7 +97,8 @@ class DisplayPanel(wx.Panel):
         # Scatter
         self.canvas.scatter.set_data(self.parent.h5_data.pos[mask], edge_width=0,
                                      face_color=cmap[data], size=0.1)
-        self.canvas.update()
+       # scat_filter = visuals.filters.picking.PickingFilter(mask)
+        
 
     def draw_arrows(self):
         dataset = self.parent.drop_vectors.GetStringSelection()
@@ -107,47 +117,59 @@ class DisplayPanel(wx.Panel):
         
         # Draw vectors
         self.canvas.arrows.set_data(pos=pos, color=(1,1,1,0.5), connect='segments', width=1)
-        self.canvas.update()
     
-    def draw_iso(self, redraw):
+    def draw_iso(self, redraw=False, append=False):
         data_set = self.parent.drop_list.GetStringSelection()
         
         # Prevent repeated loading of the same dataset
-        if self.old_dataset != data_set:
-            self.current_data = np.copy(self.parent.h5_data.get_iso_volume(data_set, 128))
-            self.old_dataset = data_set
-            if isinstance(self.current_data[0,0,0], (list, tuple, np.ndarray)):
-                self.current_data = np.linalg.norm(self.current_data, axis=3)
-
-        self.canvas.alpha = self.parent.slider_left.GetValue()/100
-        self.canvas.threshold = self.parent.slider_right.GetValue()/100
+        if self.old_iso_dataset != data_set:
+            self.current_iso_data = np.copy(self.parent.h5_data.get_iso_volume(data_set, self.res))
+            self.old_iso_dataset = data_set
+            if isinstance(self.current_iso_data[0,0,0], (list, tuple, np.ndarray)):
+                self.current_iso_data = np.linalg.norm(self.current_iso_data, axis=3)
 
         cmap = self.get_cmap(self.parent.drop_cmap.GetStringSelection())
 
         # Draw if empty update otherwise
-        if self.canvas.iso is None or redraw:
+        if len(self.canvas.iso) == 0 or redraw:
             # Normalise to [0...1]
             if self.parent.check_log.GetValue():
-                data = np.log10(self.current_data)
+                data = np.log10(self.current_iso_data)
             else:
-                data = np.copy(self.current_data)
+                data = np.copy(self.current_iso_data)
             
             data -= np.amin(data)
             if np.amax(data) > 0:
                 data /= np.amax(data)
             
             self.canvas.unfreeze()
-            self.canvas.iso = scene.visuals.Isosurface(data,
-                            color=(1.0, 0.0, 0.0, self.canvas.alpha),
-                            parent=self.canvas.view.scene,
-                            level=self.canvas.threshold, shading='smooth')
-        else:
-            self.canvas.iso.level = self.canvas.threshold
-            color = cmap.map(np.array(self.canvas.iso.level))[0]
-            color[3] = self.canvas.alpha
-            self.canvas.iso.color = (color)
+            #if len(self.canvas.iso) > 0:
+            #    self.canvas.iso[0].parent = None
+                #del self.canvas.iso
+
+            if append:
+                self.canvas.iso.append(scene.visuals.Isosurface(parent=self.canvas.view.scene,
+                            shading='smooth'))
+            else: 
+                self.canvas.iso[-1] = scene.visuals.Isosurface(parent=self.canvas.view.scene,
+                            shading='smooth')
             
-        self.canvas.update()
+            self.canvas.iso[-1].set_data(data)
+            self.canvas.iso[-1].level = self.parent.slider_left.GetValue()/100
+            color = cmap.map(np.array(self.canvas.iso[-1].level))[0]
+            color[3] = self.parent.slider_right.GetValue()/100
+            self.canvas.iso[-1].color = (color)
+            self.canvas.iso[-1].transform = STTransform(scale=[self.parent.h5_data.xmax/self.res,
+                                                           self.parent.h5_data.ymax/self.res,
+                                                           self.parent.h5_data.zmax/self.res])
+            
+        else:
+            self.canvas.iso[-1].level = self.parent.slider_left.GetValue()/100
+            color = cmap.map(np.array(self.canvas.iso[-1].level))[0]
+            color[3] = self.parent.slider_right.GetValue()/100
+            self.canvas.iso[-1].color = (color)
+        
+        #self.canvas.iso.set_gl_state(blend=True)
 
     # Volume
     def draw_volume(self, redraw):
@@ -156,10 +178,15 @@ class DisplayPanel(wx.Panel):
 
         # Prevent repeated loading of the same dataset
         if self.old_dataset != data_set:
-            self.current_data = self.parent.h5_data.get_volume(data_set, 128)
+            self.current_vol_data = self.parent.h5_data.get_volume(data_set, 100)
             self.old_dataset = data_set
-            if isinstance(self.current_data[0,0,0], (list, tuple, np.ndarray)):
-                self.current_data = np.linalg.norm(self.current_data, axis=3)
+            if isinstance(self.current_vol_data[0,0,0], (list, tuple, np.ndarray)):
+                self.current_vol_data = np.linalg.norm(self.current_vol_data, axis=3)
+        
+        self.canvas.gamma = self.parent.slider_right.GetValue()/10
+        self.canvas.threshold = self.parent.slider_left.GetValue()/100
+        
+        #self.image_panel.canvas.plane_position[1] = self.slider_left.GetValue()/100
         
         cmap = self.get_cmap(self.parent.drop_cmap.GetStringSelection())
 
@@ -167,16 +194,21 @@ class DisplayPanel(wx.Panel):
         if self.canvas.vol is None or redraw:
             # Normalise to [0...1]
             if self.parent.check_log.GetValue():
-                data = np.log10(self.current_data)
+                data = np.log10(self.current_vol_data)
             else:
-                data = np.copy(self.current_data)
+                data = np.copy(self.current_vol_data)
            
             data -= np.amin(data)
             if np.amax(data) > 0:
                 data /= np.amax(data)
             
             self.canvas.unfreeze()
+            if self.canvas.vol is not None:
+                self.canvas.vol.parent = None
+                del self.canvas.vol
             self.canvas.vol = scene.visuals.Volume(data,
+                            threshold=self.canvas.threshold,
+                            gamma=self.canvas.gamma,
                             parent=self.canvas.view.scene,
                             cmap=cmap,
                             interpolation=self.canvas.interpolation,
@@ -184,11 +216,18 @@ class DisplayPanel(wx.Panel):
                             plane_normal=self.canvas.plane_normal,
                             plane_position=self.canvas.plane_position,
                             plane_thickness=self.canvas.plane_thickness,
-                            texture_format='r32f', relative_step_size=1.0)
+                            texture_format='r32f', relative_step_size=1.0,)
                             #clipping_planes_coord_system='documnent')
-
-        self.canvas.update()
-
+            #self.canvas.vol.transform.TransformSystem()
+            self.canvas.vol.transform = STTransform(scale=[self.parent.h5_data.xmax/self.res,
+                                                           self.parent.h5_data.ymax/self.res,
+                                                           self.parent.h5_data.zmax/self.res])
+        else:
+            self.canvas.vol.gamma = self.canvas.gamma
+            self.canvas.vol.threshold = self.canvas.threshold
+            self.canvas.vol.cmap = cmap
+    
+        #self.canvas.vol.set_gl_state(blend=True)
     
     def draw_image_vbo(self):
         ps = self.canvas2.pixel_scale
@@ -217,9 +256,6 @@ class DisplayPanel(wx.Panel):
             self.canvas2.size = (w,h)
         self.Refresh()
 
-    def on_show(self, event):
-        self.canvas.show()
-    
     # Get colormaps
     def get_cmap(self, map):
         if map=='HSL':
@@ -244,7 +280,7 @@ class DisplayPanel(wx.Panel):
 class MyCanvas(scene.SceneCanvas):
     def __init__(self, *args, **kwargs):
         scene.SceneCanvas.__init__(self, *args, **kwargs)
-        self._backend._vispy_set_current()
+        #self._backend._vispy_set_current()
         self.unfreeze()
         self.parent = kwargs['parent']
         
@@ -265,41 +301,7 @@ class MyCanvas(scene.SceneCanvas):
         # Add vectors
         self.arrows = scene.visuals.Arrow(parent=self.view.scene)
         
-        # Add image
-        self.image = None
-        
-        '''
-        # Add program
-        self.program = visuals.shaders.program.ModularProgram()
-        self.program.set_shaders(VERT_SHADER, FRAG_SHADER)
-        v_position = self.parent.parent.h5_data.pos#[::1000,:]
-        max = np.amax(v_position)
-        self.cur_size = self.size[0]
-        ratio = self.cur_size/max
-        v_position = (v_position/max - 0.5)*2
-        v_color = np.zeros_like(v_position)
-        v_color[:,0] += 1
-        # Object (2*hsml) size is in physical pixels
-        v_size = self.parent.parent.h5_data.hsml[:, np.newaxis]#[::1000,:]
-        v_size = v_size*2*ratio
-        # Send data to shader
-        self.program['a_color'] = gloo.VertexBuffer(v_color)
-        self.program['a_position'] = gloo.VertexBuffer(v_position)
-        self.program['a_size'] = gloo.VertexBuffer(v_size)
-        # Make transformation matrices
-        self.translate = [0,0,0]
-        self.view = translate(self.translate, dtype=np.float32)
-        self.model = np.eye(4, dtype=np.float32)
-        self.range = 1.0
-        self.projection = ortho(-self.range, self.range, -self.range, self.range, 10.0, -10.0)
-        self.program['u_projection'] = self.projection
-        self.program['u_model'] = self.model
-        self.program['u_view'] = self.view
-        self.scaling = 1
-        self.program['u_scaling'] = self.scaling
-        self.program['u_gamma'] = 1
-        self.program.draw('points')
-        '''
+        #self.m_markers = MyMarker(parent=self.view.scene, pos=self.parent.parent.h5_data.pos, color=(1,1,1), size=10)
         
         # Add text
         #self.text = scene.visuals.Text(str(self.view.camera), parent=self.view, pos=(self.size[0], self.size[1]), anchor_x='right',anchor_y='top', color='white', font_size=7)
@@ -314,12 +316,10 @@ class MyCanvas(scene.SceneCanvas):
         self.plane_thickness=1
         
         # Add isosurface placeholder
-        self.iso = None
-        self.threshold = None
-        self.alpha = None
+        self.iso = []
         
         #Enables isosurface opacity
-        gloo.set_state('translucent')
+        gloo.set_state('additive', cull_face=False)
         
         #xax = scene.visuals.Axis(pos=((0, 0, 0), (50, 0, 0)), tick_direction=(0, -1),
         #         font_size=12, axis_color='w', tick_color='w', text_color='w',
@@ -388,6 +388,61 @@ class MyCanvas(scene.SceneCanvas):
             self.axis.transform.scale((self.xyz_size, self.xyz_size, 0.001))
             self.axis.transform.translate((self.xyz_size, self.xyz_size))
             self.axis.update()
+       
+     
+
+class MyMarker(visuals.Visual):
+    VERT_SHADER = """
     
-    def on_close(self, event):
+    // Program inputs
+    attribute vec3  a_position;
+    attribute vec3  a_color;
+    attribute float a_size;
+    
+    // Local variables
+    varying vec4 v_fg_color;
+    
+    // Main
+    void main (void) {
+        v_fg_color  = vec4(a_color, 1.0);
+        gl_Position =  $transform * vec4(a_position, 1.0);
+        gl_PointSize = a_size;
+    }
+    """
+    
+    FRAG_SHADER = """
+    #version 120
+    
+    varying vec4 v_fg_color;
+
+    void main()
+    {
+        float q = length(gl_PointCoord.xy - vec2(0.5, 0.5)) * 2;
+        if( q > 1 )
+            discard;
+        else
+            {
+            gl_FragColor = vec4(1, 0, 0, 1);
+            }
+    }
+    """
+    
+    def __init__(self, parent, pos=None, color=None, size=None):
+        visuals.Visual.__init__(self, parent, self.VERT_SHADER, self.FRAG_SHADER)
+        self.parent = parent
+        self._pos = pos
+        self._color = color
+        self._size = size
+        self.set_gl_state(blend=True,
+                          blend_func=('src_alpha', 'one_minus_src_alpha'))
+        self._draw_mode = 'points'
+
+    def _prepare_transforms(self, view=None):
+        view.view_program.vert['transform'] = self.parent.view.get_transform()
+
+    def _prepare_draw(self, view):
+        # attributes / uniforms are not available until program is built
+        self.shared_program['a_position'] = VertexBuffer(self._pos)
+        self.shared_program['a_color'] = VertexBuffer(self._color)
+        self.shared_program['a_size'] = VertexBuffer(self._size)
         self.close()
