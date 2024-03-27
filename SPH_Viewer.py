@@ -21,7 +21,7 @@ class MyFrame(wx.Frame):
         
         self.path = None
         self.file_dialog = FileDialog(self)
-
+        
         # Cant close with Destroy thus using Exit
         if self.path is None:
             self.Destroy()
@@ -75,6 +75,7 @@ class MyFrame(wx.Frame):
        # Setup window properties
         #self.root_sizer.SetSizeHints(self)
         self.SetSizerAndFit(self.root_sizer)
+        
         self.Show()
 
     def InitControls(self):
@@ -349,7 +350,7 @@ class FileDialog(wx.FileDialog):
         #self.parent.current_dir = dialog.GetDirectory()
         #self.get_all()
         #return
-        wx.TopLevelWindow.RequestUserAttention(self)
+        #wx.TopLevelWindow.RequestUserAttention(self)
         if dialog.ShowModal() == wx.ID_OK:
             try:
                 self.parent.path = dialog.GetPath()
